@@ -3,4 +3,7 @@ project(mini_db)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(mini_db src/main.cpp)
+add_executable(mini_db 
+    src/main.cpp
+    src/storage/disk_manager.cpp
+)
