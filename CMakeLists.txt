@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 17)
 add_executable(mini_db 
     src/main.cpp
     src/storage/disk_manager.cpp
+    src/storage/buffer_pool.cpp
+    src/storage/table_heap.cpp
 )
 
 add_executable(test_disk tests/test_disk_manager.cpp src/storage/disk_manager.cpp)
