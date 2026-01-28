@@ -1,5 +1,5 @@
 #pragma once
-#include "../common/page.h"
+#include "common/page.h"
 #include <string>
 
 namespace mini {

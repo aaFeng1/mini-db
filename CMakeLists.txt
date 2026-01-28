@@ -1,19 +1,40 @@
-cmake_minimum_required(VERSION 3.10)
-project(mini_db)
+cmake_minimum_required(VERSION 3.20)
+project(lightdb LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_executable(mini_db 
-    src/main.cpp
-    src/storage/disk_manager.cpp
-    src/storage/buffer_pool.cpp
-    src/storage/table_heap.cpp
+# 生成 compile_commands.json（clangd 用）
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# ---------- Core library ----------
+add_library(db_core
+  src/storage/buffer_pool.cpp
+  src/storage/disk_manager.cpp
+  src/storage/table_heap.cpp
 )
 
-add_executable(test_disk tests/test_disk_manager.cpp src/storage/disk_manager.cpp)
-add_executable(test_bufferpool tests/test_buffer_pool.cpp src/storage/buffer_pool.cpp src/storage/disk_manager.cpp)
+target_include_directories(db_core
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 
-enable_testing()
+# 你可以逐步加一些更严格的编译选项（先别一口气拉满，避免你被 warning 淹死）
+target_compile_options(db_core PRIVATE
+  $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic>
+)
 
-add_test(NAME test_disk COMMAND test_disk)
-add_test(NAME test_bufferpool COMMAND test_bufferpool)
+# ---------- Main executable ----------
+add_executable(minidb src/main.cpp)
+target_link_libraries(minidb PRIVATE db_core)
+
+# ---------- Tests ----------
+option(ENABLE_TESTS "Build tests" ON)
+
+if(ENABLE_TESTS)
+  add_subdirectory(third_party/googletest)
+  enable_testing()
+  add_subdirectory(tests)
+endif()
+

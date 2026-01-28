@@ -1,5 +1,5 @@
 #pragma once
-#include "../common/page.h"
+#include "common/page.h"
 #include "disk_manager.h"
 #include <cstddef>
 #include <deque>

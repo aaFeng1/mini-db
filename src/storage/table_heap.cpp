@@ -1,4 +1,4 @@
-#include "table_heap.h"
+#include "storage/table_heap.h"
 #include <cstdint>
 #include <stdexcept>
 

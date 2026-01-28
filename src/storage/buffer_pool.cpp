@@ -1,4 +1,4 @@
-#include "buffer_pool.h"
+#include "storage/buffer_pool.h"
 #include <numeric>
 
 namespace mini {
@@ -75,7 +75,7 @@ bool BufferPool::FlushPage(page_id_t pid) {
 
 void BufferPool::FlushAllPages() {
   // 写回所有页
-  for (int i = 0; i < pool_size_; ++i) {
+  for (std::size_t i = 0; i < pool_size_; ++i) {
     if (meta_[i].page_id != -1 && meta_[i].is_dirty) {
       disk_->WritePage(meta_[i].page_id, pages_[i]);
       meta_[i].is_dirty = false;
