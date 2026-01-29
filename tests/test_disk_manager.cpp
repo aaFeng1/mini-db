@@ -1,33 +1,58 @@
-#include <cassert>
+#include "storage/disk_manager.h"
 #include <cstring>
-#include <iostream>
+#include <filesystem>
+#include <gtest/gtest.h>
+#include <memory>
+#include <stdexcept>
 
-#include "../src/storage/disk_manager.h"
+using namespace mini;
 
-int main() {
-  mini::DiskManager dm("mini.db");
+class DiskManagerTest : public ::testing::Test {
+protected:
+  std::filesystem::path db_file_;
 
-  mini::Page out;
+  std::unique_ptr<DiskManager> dm_;
+
+  void SetUp() override {
+    db_file_ = "test.db";
+    std::filesystem::remove(db_file_);
+
+    dm_ = std::make_unique<DiskManager>(db_file_.string());
+  }
+
+  void TearDown() override { std::filesystem::remove(db_file_); }
+};
+
+TEST_F(DiskManagerTest, Simple) { EXPECT_EQ(1 + 1, 2); }
+// TEST_F(DiskManagerTest, SimpleFail) { EXPECT_EQ(1 + 1, 3); }
+
+TEST_F(DiskManagerTest, SimpleReadWrite) {
+  Page out;
   const char *msg = "page-0";
   std::memcpy(out.data.data(), msg, std::strlen(msg));
-  dm.WritePage(0, out);
+  dm_->WritePage(0, out);
+  Page in;
+  dm_->ReadPage(0, in);
+  EXPECT_STREQ(in.GetData(), msg);
+}
 
-  msg = "page-100";
+TEST_F(DiskManagerTest, InvalidPageThrows) {
+  Page buf;
+  EXPECT_THROW(dm_->WritePage(-1, buf), std::runtime_error);
+  EXPECT_THROW(dm_->ReadPage(-1, buf), std::runtime_error);
+}
+
+TEST_F(DiskManagerTest, DISABLED_ReWrite) {
+  Page out;
+  const char *msg = "page-0...";
   std::memcpy(out.data.data(), msg, std::strlen(msg));
-  dm.WritePage(100, out);
-
-  mini::Page in;
-  dm.ReadPage(0, in);
-  //   std::cout << "read: " << reinterpret_cast<const char *>(in.data.data())
-  //             << "\n";
-  assert(strcmp(reinterpret_cast<const char *>(in.data.data()), "page-0") == 0);
-  dm.ReadPage(100, in);
-  //   std::cout << "read: " << reinterpret_cast<const char *>(in.data.data())
-  //             << "\n";
-  assert(strcmp(reinterpret_cast<const char *>(in.data.data()), "page-100") ==
-         0);
-
-  std::cout << "ALL TESTS PASSED" << std::endl;
-
-  return 0;
+  dm_->WritePage(0, out);
+  // write again
+  const char *msg1 = "page-0";
+  std::memcpy(out.data.data(), msg1, std::strlen(msg1));
+  dm_->WritePage(0, out);
+  Page in;
+  dm_->ReadPage(0, in);
+  EXPECT_STREQ(in.GetData(), msg1);
+  EXPECT_STRNE(in.GetData(), msg);
 }

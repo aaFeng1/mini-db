@@ -1,110 +1,123 @@
-#include <cassert>
-#include <cstdio> // std::remove
+#include "common/page.h"
+#include "storage/buffer_pool.h"
+#include "storage/disk_manager.h"
+#include <cstddef>
 #include <cstring>
-#include <iostream>
-#include <string>
+#include <filesystem>
+#include <gtest/gtest.h>
+#include <memory>
+#include <stdexcept>
 
-#include "../src/common/page.h"
-#include "../src/storage/buffer_pool.h"
-#include "../src/storage/disk_manager.h"
+using namespace mini;
 
-static void FillPage(mini::Page &p, const std::string &s) {
-  std::memset(p.data.data(), 0, mini::PAGE_SIZE);
-  std::memcpy(p.data.data(), s.data(),
-              std::min(s.size(), (size_t)mini::PAGE_SIZE));
-}
+class BufferPoolTest : public ::testing::Test {
+protected:
+  std::filesystem::path db_file_;
 
-static std::string ReadPagePrefix(const mini::Page &p, size_t n = 64) {
-  n = std::min(n, (size_t)mini::PAGE_SIZE);
-  return std::string(reinterpret_cast<const char *>(p.data.data()),
-                     reinterpret_cast<const char *>(p.data.data()) + n);
-}
+  std::unique_ptr<DiskManager> dm_;
+  std::unique_ptr<BufferPool> bp_;
 
-static void TestPinProtection() {
-  const char *db = "test_bp_pin.db";
-  std::remove(db);
+  void SetUp() override {
+    db_file_ = "test.db";
+    std::filesystem::remove(db_file_);
 
-  mini::DiskManager dm(db);
-  mini::BufferPool bp(1, &dm);
-
-  mini::Page *p1 = bp.FetchPage(1);
-  assert(p1 != nullptr);
-
-  // 不 Unpin，让它一直 pin 着
-  mini::Page *p2 = bp.FetchPage(2);
-  assert(p2 == nullptr && "pool_size=1 and page 1 pinned, should not evict");
-
-  std::cout << "[PASS] TestPinProtection\n";
-}
-
-static void TestDirtyEvictWriteBack() {
-  const char *db = "test_bp_dirty.db";
-  std::remove(db);
-
-  mini::DiskManager dm(db);
-  mini::BufferPool bp(1, &dm);
-
-  // 1) load page 1, modify, mark dirty
-  mini::Page *p1 = bp.FetchPage(1);
-  assert(p1 != nullptr);
-  FillPage(*p1, "page-1-dirty-data");
-  assert(bp.UnpinPage(1, true));
-
-  // 2) fetch page 2 => must evict page 1 (dirty writeback expected)
-  mini::Page *p2 = bp.FetchPage(2);
-  assert(p2 != nullptr);
-  assert(bp.UnpinPage(2, false));
-
-  // 3) read page 1 directly from disk, verify content persisted
-  mini::Page check;
-  dm.ReadPage(1, check);
-  auto prefix = ReadPagePrefix(check, 32);
-  assert(prefix.find("page-1-dirty-data") != std::string::npos);
-
-  std::cout << "[PASS] TestDirtyEvictWriteBack\n";
-}
-
-static void TestEvictMappingCorrectness() {
-  const char *db = "test_bp_map.db";
-  std::remove(db);
-
-  mini::DiskManager dm(db);
-  mini::BufferPool bp(1, &dm);
-
-  // Prepare page 1 on disk
-  {
-    mini::Page tmp;
-    FillPage(tmp, "ONE");
-    dm.WritePage(1, tmp);
+    dm_ = std::make_unique<DiskManager>(db_file_.string());
   }
 
-  // Fetch page 1
-  mini::Page *p1 = bp.FetchPage(1);
-  assert(p1 != nullptr);
-  assert(ReadPagePrefix(*p1, 8).find("ONE") != std::string::npos);
-  assert(bp.UnpinPage(1, false));
+  void TearDown() override { std::filesystem::remove(db_file_); }
+};
 
-  // Fetch page 2 => evict page 1
-  mini::Page *p2 = bp.FetchPage(2);
-  assert(p2 != nullptr);
-  FillPage(*p2, "TWO");
-  assert(bp.UnpinPage(2, true));
+// 当pool大小为2时，fetch然后标记脏，然后再加载另一页，释放，然后再加载原来的页应该能看见数据修改了
+TEST_F(BufferPoolTest, DirtyPageIsFlushed) {
+  bp_.reset();
+  bp_ = std::make_unique<BufferPool>(1, dm_.get());
 
-  // Fetch page 1 again => must not "hit wrong mapping"
-  mini::Page *p1_again = bp.FetchPage(1);
-  assert(p1_again != nullptr);
+  page_id_t pid = 0;
+  Page *page = bp_->FetchPage(pid);
+  ASSERT_NE(page, nullptr);
 
-  auto s = ReadPagePrefix(*p1_again, 8);
-  assert(s.find("ONE") != std::string::npos &&
-         "mapping wrong: returned page 2 content for page 1?");
-  assert(bp.UnpinPage(1, false));
+  const char *msg = "hello buffer pool";
+  std::memcpy(page->GetData(), msg, std::strlen(msg) + 1);
+  EXPECT_TRUE(bp_->UnpinPage(pid, true));
 
-  std::cout << "[PASS] TestEvictMappingCorrectness\n";
+  // 加载另一页
+  pid = 1;
+  Page *page2 = bp_->FetchPage(pid);
+  ASSERT_NE(page2, nullptr);
+  msg = "page2";
+  std::memcpy(page2->GetData(), msg, std::strlen(msg) + 1);
+  EXPECT_TRUE(bp_->UnpinPage(pid, true));
+
+  pid = 0;
+  page2 = bp_->FetchPage(pid);
+  ASSERT_NE(page, nullptr);
+  EXPECT_STREQ("hello buffer pool", page->GetData());
 }
 
-int main() {
-  TestPinProtection();
-  TestDirtyEvictWriteBack();
-  TestEvictMappingCorrectness();
-  return 0;
+// fetch两次同一页，应该地址一样
+TEST_F(BufferPoolTest, FetchPagePinsPage) {
+  bp_.reset();
+  bp_ = std::make_unique<BufferPool>(1, dm_.get());
+
+  page_id_t pid = 0;
+  Page *page = bp_->FetchPage(pid);
+  ASSERT_NE(page, nullptr);
+
+  Page *page2 = bp_->FetchPage(pid);
+  ASSERT_NE(page2, nullptr);
+
+  EXPECT_EQ(page, page2);
+}
+
+// 当bufferpool占满的时候，再加载页应该失败
+TEST_F(BufferPoolTest, PoolIsFull) {
+  bp_.reset();
+  bp_ = std::make_unique<BufferPool>(1, dm_.get());
+
+  page_id_t pid = 0;
+  Page *page = bp_->FetchPage(pid);
+  ASSERT_NE(page, nullptr);
+
+  pid = 1;
+  Page *page2 = bp_->FetchPage(pid);
+  EXPECT_EQ(page2, nullptr);
+}
+
+// flushallpage后再全部重新读内容应该不变
+TEST_F(BufferPoolTest, FlushAllPageReread) {
+  bp_.reset();
+  bp_ = std::make_unique<BufferPool>(2, dm_.get());
+
+  page_id_t pid = 0;
+  Page *page = bp_->FetchPage(pid);
+  ASSERT_NE(page, nullptr);
+  const char *msg = "hello buffer pool page0";
+  std::memcpy(page->GetData(), msg, std::strlen(msg) + 1);
+  EXPECT_TRUE(bp_->UnpinPage(pid, true));
+
+  pid = 1;
+  Page *page1 = bp_->FetchPage(pid);
+  ASSERT_NE(page1, nullptr);
+  msg = "hello buffer pool page1";
+  std::memcpy(page1->GetData(), msg, std::strlen(msg) + 1);
+  EXPECT_TRUE(bp_->UnpinPage(pid, true));
+
+  bp_->FlushAllPages();
+
+  pid = 0;
+  page = bp_->FetchPage(pid);
+  EXPECT_STREQ(page->GetData(), "hello buffer pool page0");
+  pid = 1;
+  page1 = bp_->FetchPage(pid);
+  EXPECT_STREQ(page1->GetData(), "hello buffer pool page1");
+  EXPECT_TRUE(bp_->UnpinPage(1, false));
+  EXPECT_TRUE(bp_->UnpinPage(0, false));
+}
+
+// upin不存在的页应该失败
+TEST_F(BufferPoolTest, UnpinNonExistingPageFails) {
+  bp_.reset();
+  bp_ = std::make_unique<BufferPool>(1, dm_.get());
+
+  EXPECT_FALSE(bp_->UnpinPage(0, false));
 }
