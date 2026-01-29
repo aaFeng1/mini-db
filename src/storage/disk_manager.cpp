@@ -34,7 +34,7 @@ void DiskManager::WritePage(page_id_t page_id, const Page &page) {
   const auto off = OffsetOf(page_id);
   if (::lseek(fd_, off, SEEK_SET) < 0)
     throw SysErr("lseek failed (write)");
-  ssize_t n = ::write(fd_, page.data.data(), PAGE_SIZE);
+  ssize_t n = ::write(fd_, page.GetConstData(), PAGE_SIZE);
   if (n < 0)
     throw SysErr("write failed");
   if (n != static_cast<ssize_t>(PAGE_SIZE))
@@ -46,13 +46,13 @@ void DiskManager::ReadPage(page_id_t page_id, Page &page) {
   const auto off = OffsetOf(page_id);
   if (::lseek(fd_, off, SEEK_SET) < 0)
     throw SysErr("lseek failed (read)");
-  ssize_t n = ::read(fd_, page.data.data(), PAGE_SIZE);
+  ssize_t n = ::read(fd_, page.GetData(), PAGE_SIZE);
   if (n < 0)
     throw SysErr("read failed");
 
   // 文件不够长时，read 可能返回 0 或不足 PAGE_SIZE ——剩余部分补 0
   if (n < static_cast<ssize_t>(PAGE_SIZE)) {
-    std::memset(page.data.data() + n, 0, PAGE_SIZE - static_cast<size_t>(n));
+    std::memset(page.GetData() + n, 0, PAGE_SIZE - static_cast<size_t>(n));
   }
 }
 

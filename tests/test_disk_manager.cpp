@@ -29,7 +29,7 @@ TEST_F(DiskManagerTest, Simple) { EXPECT_EQ(1 + 1, 2); }
 TEST_F(DiskManagerTest, SimpleReadWrite) {
   Page out;
   const char *msg = "page-0";
-  std::memcpy(out.data.data(), msg, std::strlen(msg));
+  std::memcpy(out.GetData(), msg, std::strlen(msg));
   dm_->WritePage(0, out);
   Page in;
   dm_->ReadPage(0, in);
@@ -45,11 +45,11 @@ TEST_F(DiskManagerTest, InvalidPageThrows) {
 TEST_F(DiskManagerTest, DISABLED_ReWrite) {
   Page out;
   const char *msg = "page-0...";
-  std::memcpy(out.data.data(), msg, std::strlen(msg));
+  std::memcpy(out.GetData(), msg, std::strlen(msg));
   dm_->WritePage(0, out);
   // write again
   const char *msg1 = "page-0";
-  std::memcpy(out.data.data(), msg1, std::strlen(msg1));
+  std::memcpy(out.GetData(), msg1, std::strlen(msg1));
   dm_->WritePage(0, out);
   Page in;
   dm_->ReadPage(0, in);
