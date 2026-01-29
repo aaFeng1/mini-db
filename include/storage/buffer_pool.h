@@ -1,6 +1,7 @@
 #pragma once
 #include "common/page.h"
-#include "disk_manager.h"
+#include "common/page_guard.h"
+#include "storage/disk_manager.h"
 #include <cstddef>
 #include <deque>
 #include <unordered_map>
@@ -19,6 +20,8 @@ public:
   bool UnpinPage(page_id_t pid, bool is_dirty);
   bool FlushPage(page_id_t pid);
   void FlushAllPages();
+
+  PageGuard FetchPageGuarded(page_id_t pid);
 
 private:
   struct FrameMeta {

@@ -84,6 +84,11 @@ void BufferPool::FlushAllPages() {
   return;
 }
 
+PageGuard BufferPool::FetchPageGuarded(page_id_t pid) {
+  Page *page = FetchPage(pid);
+  return PageGuard(this, pid, page);
+}
+
 int BufferPool::FindVictimFrame() {
   // 返回可用槽位，可能会失败
   if (!free_list_.empty()) {

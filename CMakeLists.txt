@@ -10,6 +10,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # ---------- Core library ----------
 add_library(db_core
+  src/common/page_guard.cpp
   src/storage/buffer_pool.cpp
   src/storage/disk_manager.cpp
   src/storage/table_heap.cpp

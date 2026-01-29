@@ -123,3 +123,31 @@ TEST_F(BufferPoolTest, UnpinNonExistingPageFails) {
 }
 
 // 多次unpin同一页？
+
+// 测试一下FetchPageGuarded
+TEST_F(BufferPoolTest, FetchPageGuarded) {
+  {
+    bp_.reset();
+    bp_ = std::make_unique<BufferPool>(1, dm_.get());
+
+    page_id_t pid = 0;
+    {
+      auto guard = bp_->FetchPageGuarded(pid);
+      Page *page = guard.GetPage();
+      ASSERT_NE(page, nullptr);
+      const char *msg = "hello buffer pool";
+      std::memcpy(page->GetData(), msg, std::strlen(msg) + 1);
+      guard.SetDirty();
+      // 再次获取应该失败
+      EXPECT_EQ(nullptr, bp_->FetchPageGuarded(1).GetPage());
+    }
+
+    {
+      auto guard = bp_->FetchPageGuarded(pid);
+      Page *page = guard.GetPage();
+      ASSERT_NE(page, nullptr);
+      const char *msg = "hello buffer pool";
+      EXPECT_STREQ(msg, bp_->FetchPageGuarded(0).GetPage()->GetData());
+    }
+  }
+}
