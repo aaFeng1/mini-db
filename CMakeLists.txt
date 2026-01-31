@@ -14,6 +14,7 @@ add_library(db_core
   src/storage/buffer_pool.cpp
   src/storage/disk_manager.cpp
   src/storage/table_heap.cpp
+  src/catalog/catalog.cpp
 )
 
 target_include_directories(db_core

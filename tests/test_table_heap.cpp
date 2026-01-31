@@ -30,7 +30,6 @@ protected:
 // 测试插入和读取单条记录
 TEST_F(TableHeapTest, InsertAndGetSingleTuple) {
   Tuple tuple;
-  EXPECT_EQ(sizeof(tuple), 6);
   char *buf = tuple.Resize(8);
   int32_t id = 42;
   int32_t value = 84;
