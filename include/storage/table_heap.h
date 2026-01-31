@@ -1,5 +1,7 @@
 #pragma once
-#include "buffer_pool.h"
+#include "common/rid.h"
+#include "storage/buffer_pool.h"
+#include "storage/tuple.h"
 #include <cstdint>
 #include <cstring>
 #include <functional>
@@ -15,19 +17,17 @@
 
 namespace mini {
 
-struct RID {
-  int32_t page_id;
-  uint16_t slot_id;
-};
-
-struct Row {
-  int32_t id;
-  int32_t value;
-};
-
 struct TablePageHeader {
   int32_t next_page_id;
-  uint16_t num_slots;
+  uint16_t num_slots;      // 0 means no rows
+  uint16_t free_space_ptr; // PAGE_SIZE - free_space_ptr = free space left
+};
+
+struct Slot {
+  uint16_t offset;     // record bytes 的起始偏移（相对页首）
+  uint16_t size;       // record 长度
+  uint8_t is_deleted;  // v1 先做逻辑删除
+  uint8_t reserved[3]; // 对齐
 };
 
 class TablePage {
@@ -38,66 +38,51 @@ public:
   static const TablePage *From(const char *data) {
     return reinterpret_cast<const TablePage *>(data);
   }
-
-  void init() {
-    header_.next_page_id = -1;
-    header_.num_slots = 0;
+  static Slot *SlotAt(char *data, uint16_t slot_id) {
+    return reinterpret_cast<Slot *>(data + sizeof(TablePageHeader) +
+                                    slot_id * sizeof(Slot));
   }
+  static const Slot *SlotAt(const char *data, uint16_t slot_id) {
+    return reinterpret_cast<const Slot *>(data + sizeof(TablePageHeader) +
+                                          slot_id * sizeof(Slot));
+  }
+
+  void Init(); // 初始化 header
+
+  bool InsertTuple(const char *tuple_data, uint16_t tuple_size,
+                   uint16_t *out_slot_id);
+
+  bool GetTuple(uint16_t slot_id, const char **out_data,
+                uint16_t *out_size) const;
+
+  bool MarkDelete(uint16_t slot_id); // 逻辑删除
+  bool IsDeleted(uint16_t slot_id) const;
+
+  uint16_t GetFreeSpace() const;
+  uint16_t GetSlotCount() const;
 
   page_id_t GetNextPageId() const { return header_.next_page_id; }
   void SetNextPageId(page_id_t pid) { header_.next_page_id = pid; }
 
   uint32_t GetNumSlots() const { return header_.num_slots; }
 
-  bool HasSpaceForOneRow() const {
-    uint32_t n = header_.num_slots;
-    size_t need = sizeof(TablePageHeader) + (n + 1) * sizeof(Row);
-    return need <= PAGE_SIZE;
-  }
-
-  uint16_t InsertRow(const Row &row) {
-    if (!HasSpaceForOneRow()) {
-      throw std::runtime_error("page full");
-    }
-    uint16_t slot = header_.num_slots;
-    std::memcpy(GetRowPtr(slot), &row, sizeof(row));
-    header_.num_slots++;
-    return slot;
-  }
-
-  Row GetRow(uint16_t slot) const {
-    if (slot >= header_.num_slots) {
-      throw std::runtime_error("slot out of range");
-    }
-    Row row;
-    std::memcpy(&row, GetRowPtr(slot), sizeof(Row));
-    return row;
-  }
-
 private:
-  char *GetRowPtr(uint16_t slot) {
-    return reinterpret_cast<char *>(this) + sizeof(TablePageHeader) +
-           slot * sizeof(Row);
-  }
-  const char *GetRowPtr(uint16_t slot) const {
-    return reinterpret_cast<const char *>(this) + sizeof(TablePageHeader) +
-           slot * sizeof(Row);
-  }
   TablePageHeader header_;
+};
+
+class TableIterator {
+public:
+private:
+  // TODO
 };
 
 class TableHeap {
 public:
   explicit TableHeap(BufferPool *buffer_pool);
 
-  // 插入一条记录，返回它的物理位置
-  RID InsertRow(const Row &row);
-
-  // 根据 RID 精确读取
-  Row GetRow(const RID &rid);
-
-  // 顺序扫描整张表
-  void Scan(std::function<void(const RID &, const Row &)> callback);
+  RID InsertTuple(const Tuple &tuple);
+  bool GetTuple(const RID &rid, Tuple *out);
+  TableIterator Begin();
 
 private:
   BufferPool *buffer_pool_;

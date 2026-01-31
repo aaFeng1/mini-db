@@ -4,6 +4,7 @@
 #include "storage/buffer_pool.h"
 #include "storage/disk_manager.h"
 #include "storage/table_heap.h"
+#include "storage/tuple.h"
 #include <sstream>
 #include <string>
 
@@ -21,19 +22,20 @@ void ExecuteSQL(const std::string &sql, TableHeap &table_heap) {
       return;
     }
 
-    Row row{id, value};
-    RID rid = table_heap.InsertRow(row);
-
-    std::cout << "inserted: page=" << rid.page_id << " slot=" << rid.slot_id
-              << "\n";
+    Tuple tuple;
+    char *buf = tuple.Resize(8);
+    std::memcpy(buf, &id, 4);
+    std::memcpy(buf + 4, &value, 4);
+    table_heap.InsertTuple(tuple);
+    std::cout << "OK\n";
     return;
   }
 
   if (cmd == "select") {
-    table_heap.Scan([](const RID &rid, const Row &row) {
-      std::cout << "page=" << rid.page_id << " slot=" << rid.slot_id
-                << " | id=" << row.id << " value=" << row.value << "\n";
-    });
+    // table_heap.Scan([](const RID &rid, const Row &row) {
+    //   std::cout << "page=" << rid.page_id << " slot=" << rid.slot_id
+    //             << " | id=" << row.id << " value=" << row.value << "\n";
+    // });
     return;
   }
 
