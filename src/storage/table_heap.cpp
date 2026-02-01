@@ -1,5 +1,6 @@
 #include "storage/table_heap.h"
 #include "common/page_guard.h"
+#include "storage/table_iterator.h"
 #include <cstdint>
 #include <stdexcept>
 
@@ -119,6 +120,11 @@ bool TableHeap::GetTuple(const RID &rid, Tuple *out) {
   return true;
 }
 
-TableIterator TableHeap::Begin() { return TableIterator(); }
+TableIterator TableHeap::Begin() {
+  TableIterator iter(this, RID{first_page_id_, UINT16_MAX}, false);
+  return ++iter;
+}
+
+TableIterator TableHeap::End() { return TableIterator(); }
 
 } // namespace mini

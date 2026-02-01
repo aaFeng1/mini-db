@@ -17,6 +17,8 @@
 
 namespace mini {
 
+constexpr page_id_t INVALID_PAGE_ID = -1;
+
 struct TablePageHeader {
   int32_t next_page_id;
   uint16_t num_slots;      // 0 means no rows
@@ -70,11 +72,7 @@ private:
   TablePageHeader header_;
 };
 
-class TableIterator {
-public:
-private:
-  // TODO
-};
+class TableIterator;
 
 class TableHeap {
 public:
@@ -83,6 +81,10 @@ public:
   RID InsertTuple(const Tuple &tuple);
   bool GetTuple(const RID &rid, Tuple *out);
   TableIterator Begin();
+  TableIterator End();
+
+  BufferPool *GetBufferPool() { return buffer_pool_; }
+  page_id_t GetFirstPageId() const { return first_page_id_; }
 
 private:
   BufferPool *buffer_pool_;
