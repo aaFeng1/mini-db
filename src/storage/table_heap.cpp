@@ -120,6 +120,18 @@ bool TableHeap::GetTuple(const RID &rid, Tuple *out) {
   return true;
 }
 
+bool TableHeap::DeleteTuple(const RID &rid) {
+  PageGuard pg = buffer_pool_->FetchPageGuarded(rid.page_id);
+  TablePage *tp = pg.GetPage()->As<TablePage>();
+  if (!tp->IsDeleted(rid.slot_id)) {
+    if (tp->MarkDelete(rid.slot_id)) {
+      pg.SetDirty();
+      return true;
+    }
+  }
+  return false;
+}
+
 TableIterator TableHeap::Begin() {
   TableIterator iter(this, RID{first_page_id_, UINT16_MAX}, false);
   return ++iter;

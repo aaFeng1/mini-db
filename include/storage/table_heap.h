@@ -80,6 +80,7 @@ public:
 
   RID InsertTuple(const Tuple &tuple);
   bool GetTuple(const RID &rid, Tuple *out);
+  bool DeleteTuple(const RID &rid);
   TableIterator Begin();
   TableIterator End();
 
