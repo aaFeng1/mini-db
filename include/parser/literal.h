@@ -14,25 +14,24 @@ private:
 
 class StringLiteral : public Literal {
 public:
-  explicit StringLiteral(std::string value) : value_(std::move(value)) {}
   explicit StringLiteral(std::string_view value) : value_(value) {}
   ~StringLiteral() override = default;
 
-  std::string value() const { return value_; }
+  std::string_view value() const { return value_; }
 
 private:
-  std::string value_;
+  std::string_view value_;
 };
 
 class IntLiteral : public Literal {
 public:
-  explicit IntLiteral(int value) : value_(value) {}
+  explicit IntLiteral(std::string_view value) : value_(value) {}
   ~IntLiteral() override = default;
 
-  int value() const { return value_; }
+  std::string_view value() const { return value_; }
 
 private:
-  int value_;
+  std::string_view value_;
 };
 
 } // namespace mini

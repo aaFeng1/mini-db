@@ -13,6 +13,9 @@ public:
   ParserError(ErrorKind kind, SourceSpan span, const std::string &message)
       : kind(kind), span(span), message(message) {}
   ~ParserError() = default;
+  ErrorKind Kind() const { return kind; }
+  SourceSpan Span() const { return span; }
+  std::string Message() const { return message; }
 
 private:
   ErrorKind kind;

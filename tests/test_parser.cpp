@@ -48,7 +48,7 @@ TEST_F(ParserTest, InsertIntoTable) {
   const auto &values = insert_stmt->Values();
   ASSERT_EQ(values.size(), 2);
   auto int_literal = static_cast<IntLiteral *>(values[0].get());
-  ASSERT_EQ(int_literal->value(), 1);
+  ASSERT_EQ(int_literal->value(), "1");
   auto str_literal = static_cast<StringLiteral *>(values[1].get());
   ASSERT_EQ(str_literal->value(), "a");
 }

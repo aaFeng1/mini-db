@@ -44,8 +44,7 @@ std::unique_ptr<Statement> Parser::ParseInsertStatement() {
       values.push_back(std::make_unique<StringLiteral>(str_token.GetLexeme()));
     } else if (next.GetType() == TokenType::TOKEN_NUMBER) {
       Token int_token = Expect(TokenType::TOKEN_NUMBER);
-      int int_value = std::stoi(std::string(int_token.GetLexeme()));
-      values.push_back(std::make_unique<IntLiteral>(int_value));
+      values.push_back(std::make_unique<IntLiteral>(int_token.GetLexeme()));
     } else {
       error_ = ParserError(ErrorKind::ERROR_UNSUPPORTED_TOKEN, next.GetSpan(),
                            "Expected literal value.");
