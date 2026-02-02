@@ -1,16 +1,14 @@
-add_executable(db_tests
-  test_buffer_pool.cpp
-  test_disk_manager.cpp
-  test_table_heap.cpp
-  test_catalog.cpp
-  test_table_iterator.cpp
-  test_lexer.cpp
+file(GLOB_RECURSE TEST_FILES
+    CONFIGURE_DEPENDS
+    *.cpp
 )
 
+add_executable(db_tests ${TEST_FILES})
+
 target_link_libraries(db_tests
-  PRIVATE
     db_core
-    GTest::gtest_main
+    gtest
+    gtest_main
 )
 
 include(GoogleTest)

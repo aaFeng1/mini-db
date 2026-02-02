@@ -43,7 +43,7 @@ void ExecuteSQL(const std::string &sql, TableHeap &table_heap) {
 }
 
 int main() {
-  DiskManager dm("mini.db");
+  DiskManager dm("data/mini.db");
   BufferPool buffer_pool(100, &dm);
   TableHeap table(&buffer_pool);
 
