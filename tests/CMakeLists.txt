@@ -4,6 +4,7 @@ add_executable(db_tests
   test_table_heap.cpp
   test_catalog.cpp
   test_table_iterator.cpp
+  test_lexer.cpp
 )
 
 target_link_libraries(db_tests

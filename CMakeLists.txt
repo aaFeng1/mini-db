@@ -16,6 +16,7 @@ add_library(db_core
   src/storage/table_heap.cpp
   src/catalog/catalog.cpp
   src/storage/table_iterator.cpp
+  src/parser/lexer.cpp
 )
 
 target_include_directories(db_core
