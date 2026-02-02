@@ -45,6 +45,7 @@ enum class ErrorKind {
   ERROR_INVALID_CHARACTER,   //非法字符
   ERROR_UNTERMINATED_STRING, //不完整字符串
   ERROR_INVALID_NUMBER,      //无效数字
+  ERROR_UNSUPPORTED_TOKEN,   //不支持的token
   // Add more error kinds as needed
 };
 
@@ -77,6 +78,10 @@ public:
   LexerError(ErrorKind kind, SourceSpan span, const std::string &message)
       : kind(kind), span(span), message(message) {}
   ~LexerError() = default;
+
+  ErrorKind GetType() const { return kind; }
+  SourceSpan GetSpan() const { return span; }
+  std::string GetMessage() const { return message; }
 
 private:
   ErrorKind kind;

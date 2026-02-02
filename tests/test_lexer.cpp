@@ -7,6 +7,9 @@ using namespace mini;
 TEST(LexerTest, BasicTokens) {
   std::string input = "SELECT * FROM table1 WHERE id = 10;";
   Lexer lexer(input);
+  EXPECT_EQ(lexer.PeekToken().GetType(), TokenType::TOKEN_SELECT);
+  EXPECT_EQ(lexer.PeekToken().GetType(), TokenType::TOKEN_SELECT);
+  EXPECT_EQ(lexer.PeekToken().GetType(), TokenType::TOKEN_SELECT);
   std::vector<Token> tokens = lexer.Tokenize();
 
   std::vector<TokenType> expected_types = {
