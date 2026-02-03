@@ -1,5 +1,6 @@
 #pragma once
 #include "catalog/column.h"
+#include "type/data_type.h"
 #include <stdexcept>
 #include <vector>
 
