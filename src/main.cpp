@@ -48,7 +48,7 @@ static void BootstrapCatalog(Catalog &catalog) {
 // ---------------------------
 static void PrintSelectHeader() {
   std::cout << "+----------+------------------+\n";
-  std::cout << "| col1(int)| col2(str[16])  |\n";
+  std::cout << "| col1(int)| col2(str[16])    |\n";
   std::cout << "+----------+------------------+\n";
 }
 
@@ -75,8 +75,9 @@ static void PrintTupleAsV1Row(const Tuple &t) {
   std::memset(s, 0, sizeof(s));
   std::memcpy(s, p + 4, 16);
 
-  std::cout << "| " << std::setw(8) << a << " | " << std::setw(16) << std::left
-            << s << " |\n";
+  std::cout << std::right;
+  std::cout << "| " << std::setw(8) << a << " | ";
+  std::cout << std::left << std::setw(16) << s << " |\n";
 }
 
 // ---------------------------
