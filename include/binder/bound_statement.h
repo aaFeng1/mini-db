@@ -31,6 +31,9 @@ public:
   TableInfo *Table() const { return table_; }
   const std::vector<std::unique_ptr<Value>> &Values() const { return values_; }
 
+  const Value *ValueAt(size_t i) const { return values_[i].get(); }
+  size_t ValueCount() const { return values_.size(); }
+
 private:
   TableInfo *table_;
   std::vector<std::unique_ptr<Value>> values_;

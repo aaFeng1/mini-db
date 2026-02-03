@@ -11,6 +11,7 @@ public:
   TableIterator() = default;
   TableIterator(TableHeap *table_heap, const RID &rid, bool end = true);
 
+  // TODO: copy?
   Tuple operator*() const;
   TableIterator &operator++();
   bool operator==(const TableIterator &other) const;

@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <cstdlib>
 #include <string>
 #include <string_view>
@@ -21,10 +22,10 @@ public:
   IntValue(std::string_view value) : value_(std::stoi(std::string(value))) {}
   ~IntValue() override = default;
   ValueType Type() const override { return ValueType::INT; }
-  int GetValue() const { return value_; }
+  int32_t GetValue() const { return value_; }
 
 private:
-  int value_;
+  int32_t value_;
 };
 
 class StringValue : public Value {
