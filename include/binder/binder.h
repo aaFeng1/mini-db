@@ -1,3 +1,4 @@
+#pragma once
 #include "binder/bound_statement.h"
 #include "binder/value.h"
 #include "catalog/catalog.h"
