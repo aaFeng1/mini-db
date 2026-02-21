@@ -56,4 +56,6 @@ void DiskManager::ReadPage(page_id_t page_id, Page &page) {
   }
 }
 
+page_id_t DiskManager::AllocatePage() { return next_page_id_++; }
+
 } // namespace mini

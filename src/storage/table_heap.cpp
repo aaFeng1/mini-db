@@ -1,4 +1,5 @@
 #include "storage/table_heap.h"
+#include "common/page.h"
 #include "common/page_guard.h"
 #include "storage/table_iterator.h"
 #include <cstdint>
@@ -75,12 +76,13 @@ uint16_t TablePage::GetFreeSpace() const {
 uint16_t TablePage::GetSlotCount() const { return header_.num_slots; }
 
 TableHeap::TableHeap(BufferPool *buffer_pool) : buffer_pool_(buffer_pool) {
-  // TODO:bad design
-  first_page_id_ = last_page_id_ = 0;
-  Page *p0 = buffer_pool_->FetchPage(0);
+  page_id_t pid;
+  Page *p0 = buffer_pool_->NewPage(&pid);
+  first_page_id_ = pid;
+  last_page_id_ = pid;
   TablePage *tp = TablePage::From(p0->GetData());
   tp->Init();
-  buffer_pool_->UnpinPage(0, true);
+  buffer_pool_->UnpinPage(pid, true);
 }
 
 RID TableHeap::InsertTuple(const Tuple &tuple) {
@@ -92,13 +94,13 @@ RID TableHeap::InsertTuple(const Tuple &tuple) {
     return RID{last_page_id_, out_slot_id};
   }
   // need new page
-  // TODO: add page allocation in BufferPool
-  PageGuard pgNex = buffer_pool_->FetchPageGuarded(last_page_id_ + 1);
+  page_id_t new_page_id;
+  PageGuard pgNex = buffer_pool_->NewPageGuarded(&new_page_id);
   // TODO: maybe is nullptr
   TablePage *tpNex = pgNex.GetPage()->As<TablePage>();
   tpNex->Init();
-  tp->SetNextPageId(last_page_id_ + 1);
-  last_page_id_ += 1;
+  tp->SetNextPageId(new_page_id);
+  last_page_id_ = new_page_id;
   pg.SetDirty();
   pgNex.SetDirty();
   if (tpNex->InsertTuple(tuple.Data(), tuple.Size(), &out_slot_id)) {

@@ -42,6 +42,11 @@ Page *BufferPool::FetchPage(page_id_t pid) {
   return &pages_[fid];
 }
 
+Page *BufferPool::NewPage(page_id_t *pid) {
+  *pid = disk_->AllocatePage();
+  return FetchPage(*pid);
+}
+
 bool BufferPool::UnpinPage(page_id_t pid, bool is_dirty) {
   // 由上层调用，表明要取消pin并且告诉我们是否被写过
   auto it = page_table_.find(pid);
@@ -87,6 +92,11 @@ void BufferPool::FlushAllPages() {
 PageGuard BufferPool::FetchPageGuarded(page_id_t pid) {
   Page *page = FetchPage(pid);
   return PageGuard(this, pid, page);
+}
+
+PageGuard BufferPool::NewPageGuarded(page_id_t *pid) {
+  Page *page = NewPage(pid);
+  return PageGuard(this, *pid, page);
 }
 
 int BufferPool::FindVictimFrame() {

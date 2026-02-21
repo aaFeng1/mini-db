@@ -17,11 +17,13 @@ public:
   ~BufferPool();
 
   Page *FetchPage(page_id_t pid);
+  Page *NewPage(page_id_t *pid);
   bool UnpinPage(page_id_t pid, bool is_dirty);
   bool FlushPage(page_id_t pid);
   void FlushAllPages();
 
   PageGuard FetchPageGuarded(page_id_t pid);
+  PageGuard NewPageGuarded(page_id_t *pid);
 
 private:
   struct FrameMeta {
