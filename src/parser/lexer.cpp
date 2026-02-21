@@ -211,6 +211,10 @@ TokenType Lexer::MatchKeyword(std::string_view lexeme) const {
     return TokenType::TOKEN_SET;
   } else if (lexeme == "DELETE") {
     return TokenType::TOKEN_DELETE;
+  } else if (lexeme == "CREATE") {
+    return TokenType::TOKEN_CREATE;
+  } else if (lexeme == "TABLE") {
+    return TokenType::TOKEN_TABLE;
   }
   return TokenType::TOKEN_IDENTIFIER;
 }

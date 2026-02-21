@@ -15,6 +15,8 @@ std::unique_ptr<Statement> Parser::ParseStatement() {
     return ParseInsertStatement();
   case TokenType::TOKEN_SELECT:
     return ParseSelectStatement();
+  case TokenType::TOKEN_CREATE:
+    return ParseCreateTableStatement();
   default:
     error_ = ParserError(ErrorKind::ERROR_UNSUPPORTED_TOKEN,
                          lexer_->PeekToken().GetSpan(), "unkonw statement.");
@@ -65,6 +67,45 @@ std::unique_ptr<Statement> Parser::ParseSelectStatement() {
   Token table_name = Expect(TokenType::TOKEN_IDENTIFIER);
   Expect(TokenType::TOKEN_SEMICOLON);
   return std::make_unique<SelectStatement>(std::string(table_name.GetLexeme()));
+}
+
+std::unique_ptr<Statement> Parser::ParseCreateTableStatement() {
+  // TODO: only support "CREATE TABLE table_name (col_name col_type,...);"
+  Expect(TokenType::TOKEN_CREATE);
+  Expect(TokenType::TOKEN_TABLE);
+  Token table_name = Expect(TokenType::TOKEN_IDENTIFIER);
+  Expect(TokenType::TOKEN_LEFT_PAREN);
+  std::vector<std::pair<std::string, DataType>> columns;
+  do {
+    Token next = lexer_->PeekToken();
+    if (next.GetType() == TokenType::TOKEN_RIGHT_PAREN) {
+      break;
+    }
+    if (next.GetType() == TokenType::TOKEN_COMMA) {
+      Expect(TokenType::TOKEN_COMMA);
+      continue;
+    }
+
+    Token col_name_token = Expect(TokenType::TOKEN_IDENTIFIER);
+    Token col_type_token = Expect(TokenType::TOKEN_IDENTIFIER);
+    std::string col_name(col_name_token.GetLexeme());
+    std::string col_type_str(col_type_token.GetLexeme());
+    DataType col_type;
+    if (col_type_str == "INT") {
+      col_type = DataType::INTEGER;
+    } else if (col_type_str == "STRING") {
+      col_type = DataType::VARCHAR;
+    } else {
+      error_ = ParserError(ErrorKind::ERROR_UNSUPPORTED_TOKEN,
+                           col_type_token.GetSpan(), "Unsupported data type.");
+      return nullptr;
+    }
+    columns.emplace_back(col_name, col_type);
+  } while (true);
+  Expect(TokenType::TOKEN_RIGHT_PAREN);
+  Expect(TokenType::TOKEN_SEMICOLON);
+  return std::make_unique<CreateTableStatement>(
+      std::string(table_name.GetLexeme()), std::move(columns));
 }
 
 Token Parser::Expect(TokenType expected) {

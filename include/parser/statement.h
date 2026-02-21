@@ -1,12 +1,13 @@
 #pragma once
 #include "parser/literal.h"
+#include "type/data_type.h"
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace mini {
 
-enum class StatementType { INSERT, SELECT };
+enum class StatementType { INSERT, SELECT, CREATE_TABLE };
 
 class Statement {
 public:
@@ -54,6 +55,24 @@ private:
   // TODO: support * in v1
   // std::vector<std::string> columns_;
   bool is_select_all_;
+};
+
+class CreateTableStatement : public Statement {
+public:
+  CreateTableStatement(std::string table_name,
+                       std::vector<std::pair<std::string, DataType>> columns)
+      : table_name_(std::move(table_name)), columns_(std::move(columns)) {}
+  ~CreateTableStatement() override = default;
+
+  StatementType Type() const override { return StatementType::CREATE_TABLE; }
+  std::string Table_name() const { return table_name_; }
+  const std::vector<std::pair<std::string, DataType>> &Columns() const {
+    return columns_;
+  }
+
+private:
+  std::string table_name_;
+  std::vector<std::pair<std::string, DataType>> columns_;
 };
 
 } // namespace mini

@@ -19,6 +19,8 @@ enum class TokenType {
   TOKEN_UPDATE,
   TOKEN_SET,
   TOKEN_DELETE,
+  TOKEN_CREATE,
+  TOKEN_TABLE,
 
   // Literals
   TOKEN_IDENTIFIER,

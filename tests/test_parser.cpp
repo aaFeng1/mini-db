@@ -52,3 +52,20 @@ TEST_F(ParserTest, InsertIntoTable) {
   auto str_literal = static_cast<StringLiteral *>(values[1].get());
   ASSERT_EQ(str_literal->value(), "a");
 }
+
+// CREATE TABLE t (id INT, name STRING);
+TEST_F(ParserTest, CreateTable) {
+  std::string query = "CREATE TABLE t (id INT, name STRING);";
+  lexer_ = std::make_unique<Lexer>(query);
+  parser_ = std::make_unique<Parser>(std::move(lexer_));
+  auto stmt = parser_->ParseStatement();
+  ASSERT_EQ(stmt->Type(), StatementType::CREATE_TABLE);
+  auto create_table_stmt = static_cast<CreateTableStatement *>(stmt.get());
+  ASSERT_EQ(create_table_stmt->Table_name(), "t");
+  const auto &columns = create_table_stmt->Columns();
+  ASSERT_EQ(columns.size(), 2);
+  ASSERT_EQ(columns[0].first, "id");
+  ASSERT_EQ(columns[0].second, DataType::INTEGER);
+  ASSERT_EQ(columns[1].first, "name");
+  ASSERT_EQ(columns[1].second, DataType::VARCHAR);
+}
