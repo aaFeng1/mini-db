@@ -36,6 +36,7 @@ TEST_F(ParserTest, SelectAllFromTable) {
   ASSERT_TRUE(select_stmt->Select_all());
 }
 
+// INSERT INTO temp VALUES (1, 'a');
 // INSERT INTO t VALUES (1, 'a');
 TEST_F(ParserTest, InsertIntoTable) {
   std::string query = "INSERT INTO t VALUES (1, 'a');";
@@ -53,6 +54,7 @@ TEST_F(ParserTest, InsertIntoTable) {
   ASSERT_EQ(str_literal->value(), "a");
 }
 
+// CREATE TABLE temp (id INT, name VARCHAR(10));
 // CREATE TABLE t (id INT, name VARCHAR(255));
 TEST_F(ParserTest, CreateTable) {
   std::string query = "CREATE TABLE t (id INT, name VARCHAR(255));";

@@ -1,12 +1,15 @@
 #include "execution/executor.h"
 #include "binder/value.h"
 #include "catalog/catalog.h"
+#include "catalog/column.h"
 #include "parser/statement.h"
 #include "storage/tuple.h"
+#include "type/data_type.h"
 #include <cstdint>
 #include <cstring>
 #include <memory>
 #include <stdexcept>
+#include <vector>
 
 namespace mini {
 
@@ -71,5 +74,33 @@ bool SelectExecutor::Next(Tuple *ret) {
   ++table_iter_;
   return true;
 }
+
+void CreateTableExecutor::Init() {
+  auto table_name = bound_create_table_stmt_->TableName();
+  auto columns = bound_create_table_stmt_->Columns();
+  auto &catalog = Context().GetCatalog();
+
+  std::vector<Column> cols;
+  uint32_t offset = 0;
+  for (const auto &col : columns) {
+    if (col.second.type == DataType::INTEGER) {
+      cols.push_back({col.first, DataType::INTEGER, offset, sizeof(int32_t)});
+      offset += sizeof(int32_t);
+    } else if (col.second.type == DataType::VARCHAR) {
+      cols.push_back({col.first, DataType::VARCHAR, offset,
+                      col.second.length}); // 假设字符串最大长度为255
+      offset += col.second.length;
+    } else {
+      throw std::runtime_error("unsupported column type");
+    }
+  }
+
+  auto schema = std::make_shared<Schema>(cols);
+  catalog.CreateTable(table_name, schema);
+
+  done_ = true;
+}
+
+bool CreateTableExecutor::Next(Tuple *) { return !done_; }
 
 } // namespace mini

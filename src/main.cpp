@@ -2,66 +2,59 @@
 #include <cstring>
 #include <iomanip>
 #include <iostream>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include "binder/binder.h"
 #include "catalog/catalog.h"
-#include "execution/executor.h"
+#include "execution/execution_context.h" // 如果你把 ctx 单独放一个头文件，按实际路径改
+#include "execution/executor.h" // 这里假设包含 Executor/InsertExecutor/SelectExecutor
 #include "parser/lexer.h"
 #include "parser/parser.h"
 #include "storage/buffer_pool.h"
 #include "storage/disk_manager.h"
-#include "storage/table_heap.h"
 #include "storage/tuple.h"
-#include <sstream>
-#include <string>
-
-// src/main.cpp
-#include <iostream>
-#include <memory>
-#include <string>
-#include <vector>
-
-// 下面这些 include 你按你项目真实路径改
-
-// 如果你需要存储层初始化（DiskManager/BufferPool）也在这里 include
-// #include "storage/disk_manager.h"
-// #include "storage/buffer_pool_manager.h"
 
 namespace mini {
 
 // ---------------------------
-// 你需要根据自己项目改动的“初始化建表”部分
+// 如果你现在已经支持 CREATE TABLE，可以把 BootstrapCatalog 删除。
+// 如果仍然想保留一个“默认表”，也可以继续用。
 // ---------------------------
-
-// 例子：建一个表 t，有两列：int 和 char[16] (固定长字符串)
-// 你项目里 Column/Schema 的构造函数、TableInfo 的字段名可能不同：按需改。
 static void BootstrapCatalog(Catalog &catalog) {
+  // 下面按你 Schema/Column API 调整
   auto schema = std::make_shared<Schema>();
   schema->AddColumn("col1", DataType::INTEGER);
+  // 假设你已经把 VARCHAR 长度存进 TypeSpec/ColumnType 里了，这里演示用 10
   schema->AddColumn("col2", DataType::VARCHAR, 10);
+
   catalog.CreateTable("t", schema);
 }
 
+static void PrintPrompt() { std::cout << "mini-db> " << std::flush; }
+
+static bool IsQuit(const std::string &line) {
+  return line == "quit" || line == "exit" || line == "\\q";
+}
+
 // ---------------------------
-// 输出：把 Tuple 的 bytes 打印出来
-// v1 没有类型系统/解码层的话，先按“定长布局”打印也行
+// 你需要根据 Tuple 的真实 API 改：如何拿到 raw data
 // ---------------------------
+static const char *TupleDataPtr(const Tuple &t) { return t.Data(); }
+
+// 只是演示：按 (int32 @0) + (char[16] @4) 打印
 static void PrintSelectHeader() {
   std::cout << "+----------+------------------+\n";
   std::cout << "| col1(int)| col2(str[16])    |\n";
   std::cout << "+----------+------------------+\n";
 }
-
 static void PrintSelectFooter() {
   std::cout << "+----------+------------------+\n";
 }
 
-// 你需要根据 Tuple/Schema 的真实 API 改：如何拿到 tuple 的 raw bytes
-// 假设你有：tuple.GetData() / tuple.Data() / tuple.GetDataPtr() 等
-static const char *TupleDataPtr(const Tuple &t) { return t.Data(); }
-
 static void PrintTupleAsV1Row(const Tuple &t) {
-  // v1 演示：按 (int32 @ offset0) + (char[16] @ offset4) 打印
   const char *p = TupleDataPtr(t);
   if (!p) {
     std::cout << "(tuple decode not wired)\n";
@@ -80,38 +73,24 @@ static void PrintTupleAsV1Row(const Tuple &t) {
   std::cout << std::left << std::setw(16) << s << " |\n";
 }
 
-// ---------------------------
-// REPL 辅助
-// ---------------------------
-static void PrintPrompt() { std::cout << "mini-db> " << std::flush; }
-
-static bool IsQuit(const std::string &line) {
-  return line == "quit" || line == "exit" || line == "\\q";
-}
-
 } // namespace mini
 
 int main() {
   using namespace mini;
 
   try {
-    // ---------------------------
-    // 1) 初始化存储层（如果你需要）
-    // ---------------------------
-    // v1 如果你 Catalog 里创建 TableHeap 需要 Disk/Buffer，就在这里初始化
-    //
-    BufferPool bpm(/*pool_size=*/10, new DiskManager("data/mini.db"));
-    Catalog catalog(&bpm); // 或 Catalog(bpm)
+    auto disk = std::make_unique<DiskManager>("data/mini.db");
+    BufferPool bpm(10, disk.get());
 
-    // ---------------------------
-    // 2) 手动建表（因为 v1 不支持 CREATE）
-    // ---------------------------
+    Catalog catalog(&bpm);
+    ExecutionContext ctx(catalog);
+
     BootstrapCatalog(catalog);
 
-    std::cout << "LightDB v1 (minimal) ready. Type SQL, or 'quit'.\n";
+    std::cout << "LightDB ready. Type SQL, or 'quit'.\n";
 
     // ---------------------------
-    // 3) REPL：读 SQL -> parse -> bind -> exec
+    // 3) REPL：SQL -> parse -> bind -> exec
     // ---------------------------
     std::string line;
     while (true) {
@@ -124,12 +103,11 @@ int main() {
         break;
 
       // 3.1 Parser
-      std::unique_ptr<Lexer> lexer = std::make_unique<Lexer>(line);
+      auto lexer = std::make_unique<Lexer>(line);
       Parser parser(std::move(lexer));
       auto stmt = parser.ParseStatement();
       if (!stmt) {
-        std::cerr << "[parse error] " << parser.GetError().Message()
-                  << "\n"; // TODO: 按你 Parser 错误接口改
+        std::cerr << "[parse error] " << parser.GetError().Message() << "\n";
         continue;
       }
 
@@ -137,33 +115,27 @@ int main() {
       Binder binder(catalog);
       auto bound = binder.BindStatement(*stmt);
       if (!bound) {
-        std::cerr << "[bind error] " << binder.GetError().Message()
-                  << "\n"; // TODO: 按你 Binder 错误接口改
+        std::cerr << "[bind error] " << binder.GetError().Message() << "\n";
         continue;
       }
 
       // 3.3 Executor
+      // 你这里目前用 dynamic_cast + release 的方式 OK（v1 收尾完全够用）
       switch (bound->Type()) {
+
       case BoundStatementType::BOUND_INSERT: {
-        // 你如果 executor 构造函数收
-        // unique_ptr<BoundInsertStatement>，这里需要转换 推荐：Binder
-        // 直接返回具体的 bound stmt（或提供 helper）
-        //
-        // 这里先用 dynamic_cast 做演示（v1 OK）
         auto *raw = dynamic_cast<BoundInsertStatement *>(bound.release());
         if (!raw) {
           std::cerr << "[exec error] bad bound stmt type\n";
           continue;
         }
-
         std::unique_ptr<BoundInsertStatement> ins(raw);
 
-        InsertExecutor exec(std::move(ins));
+        // 改动：传 ctx
+        InsertExecutor exec(ctx, std::move(ins));
         exec.Init();
-        // 如果你把 INSERT 设计成 Next 执行一次，就 while；否则 Init 已插入也行
         while (exec.Next(nullptr)) {
         }
-
         std::cout << "OK (insert)\n";
         break;
       }
@@ -174,15 +146,14 @@ int main() {
           std::cerr << "[exec error] bad bound stmt type\n";
           continue;
         }
-
         std::unique_ptr<BoundSelectStatement> sel(raw);
 
-        SelectExecutor exec(std::move(sel));
+        // 改动：传 ctx
+        SelectExecutor exec(ctx, std::move(sel));
         exec.Init();
 
         PrintSelectHeader();
         Tuple out;
-        // 如果你的 SelectExecutor::Next 是 Next(Tuple*), 用下面这行：
         while (exec.Next(&out)) {
           PrintTupleAsV1Row(out);
         }
@@ -190,14 +161,49 @@ int main() {
         break;
       }
 
+      case BoundStatementType::BOUND_CREATE_TABLE: {
+        auto *raw = dynamic_cast<BoundCreateTableStatement *>(bound.release());
+        if (!raw) {
+          std::cerr << "[exec error] bad bound stmt type\n";
+          continue;
+        }
+        std::unique_ptr<BoundCreateTableStatement> ct(raw);
+
+        // 改动：传 ctx
+        CreateTableExecutor exec(ctx, std::move(ct));
+        exec.Init();
+        while (exec.Next(nullptr)) {
+        }
+        std::cout << "OK (create table)\n";
+        break;
+      }
+
+        // case BoundStatementType::BOUND_DELETE: {
+        //   auto *raw = dynamic_cast<BoundDeleteStatement *>(bound.release());
+        //   if (!raw) {
+        //     std::cerr << "[exec error] bad bound stmt type\n";
+        //     continue;
+        //   }
+        //   std::unique_ptr<BoundDeleteStatement> del(raw);
+
+        //   // 改动：传 ctx
+        //   DeleteExecutor exec(ctx, std::move(del));
+        //   exec.Init();
+        //   while (exec.Next(nullptr)) {
+        //   }
+        //   std::cout << "OK (delete)\n";
+        //   break;
+        // }
+
       default:
-        std::cerr << "[exec error] unsupported statement in v1\n";
+        std::cerr << "[exec error] unsupported statement\n";
         break;
       }
     }
 
     std::cout << "bye.\n";
     return 0;
+
   } catch (const std::exception &e) {
     std::cerr << "fatal: " << e.what() << "\n";
     return 1;
