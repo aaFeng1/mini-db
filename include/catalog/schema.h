@@ -32,6 +32,13 @@ public:
 
   uint32_t GetColumnCount() const { return columns_.size(); }
 
+  const Column &GetColumn(size_t index) const {
+    if (index >= columns_.size()) {
+      throw std::out_of_range("Schema::GetColumn: index out of range");
+    }
+    return columns_[index];
+  }
+
 private:
   std::vector<Column> columns_;
   uint32_t tuple_length_{0};

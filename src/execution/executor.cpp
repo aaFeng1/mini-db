@@ -29,7 +29,7 @@ bool InsertExecutor::Next(Tuple *) {
     auto col = columns[i];
     const Value *value = bound_insert_stmt_->ValueAt(i);
     switch (value->Type()) {
-    case ValueType::INT: {
+    case DataType::INTEGER: {
       const IntValue *intv = dynamic_cast<const IntValue *>(value);
       // TODO: add nullptr check
       if (!intv)
@@ -39,7 +39,7 @@ bool InsertExecutor::Next(Tuple *) {
       break;
     }
 
-    case ValueType::STRING: {
+    case DataType::VARCHAR: {
       const StringValue *strv = dynamic_cast<const StringValue *>(value);
       const auto &str = strv->GetValue();
       memcpy(buf + col.offset, str.data(),

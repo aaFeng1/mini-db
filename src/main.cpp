@@ -44,33 +44,60 @@ static bool IsQuit(const std::string &line) {
 // ---------------------------
 static const char *TupleDataPtr(const Tuple &t) { return t.Data(); }
 
-// 只是演示：按 (int32 @0) + (char[16] @4) 打印
-static void PrintSelectHeader() {
-  std::cout << "+----------+------------------+\n";
-  std::cout << "| col1(int)| col2(str[16])    |\n";
-  std::cout << "+----------+------------------+\n";
-}
-static void PrintSelectFooter() {
-  std::cout << "+----------+------------------+\n";
+static size_t DefaultWidth(const Column &c) {
+  if (c.type == DataType::INTEGER)
+    return 11; // -2147483648
+  if (c.type == DataType::VARCHAR)
+    return std::min<size_t>(c.length, 30);
+  return 10;
 }
 
-static void PrintTupleAsV1Row(const Tuple &t) {
-  const char *p = TupleDataPtr(t);
-  if (!p) {
-    std::cout << "(tuple decode not wired)\n";
-    return;
+static void PrintLine(const std::vector<size_t> &widths) {
+  std::cout << '+';
+  for (auto w : widths) {
+    std::cout << std::string(w + 2, '-') << '+';
   }
+  std::cout << "\n";
+}
 
-  int32_t a = 0;
-  std::memcpy(&a, p + 0, sizeof(int32_t));
+static std::string PadOrTrunc(std::string s, size_t w) {
+  if (s.size() <= w)
+    return s + std::string(w - s.size(), ' ');
+  // 截断并加 ...
+  if (w <= 3)
+    return s.substr(0, w);
+  return s.substr(0, w - 3) + "...";
+}
 
-  char s[17];
-  std::memset(s, 0, sizeof(s));
-  std::memcpy(s, p + 4, 16);
+static void PrintSelectHeader(const std::vector<Column> &cols,
+                              const std::vector<size_t> &widths) {
+  PrintLine(widths);
+  std::cout << '|';
+  for (size_t i = 0; i < cols.size(); i++) {
+    std::cout << ' ' << PadOrTrunc(cols[i].name, widths[i]) << " |";
+  }
+  std::cout << "\n";
+  PrintLine(widths);
+}
 
-  std::cout << std::right;
-  std::cout << "| " << std::setw(8) << a << " | ";
-  std::cout << std::left << std::setw(16) << s << " |\n";
+template <class ValueOf>
+static void PrintRows(const std::vector<Column> &cols,
+                      const std::vector<size_t> &widths, SelectExecutor &exec,
+                      ValueOf value_of) {
+  Tuple t;
+  size_t row_count = 0;
+
+  while (exec.Next(&t)) {
+    std::cout << '|';
+    for (size_t i = 0; i < cols.size(); i++) {
+      std::string v = value_of(t, i);
+      std::cout << ' ' << PadOrTrunc(std::move(v), widths[i]) << " |";
+    }
+    std::cout << "\n";
+    row_count++;
+  }
+  PrintLine(widths);
+  std::cout << "(" << row_count << " rows)\n";
 }
 
 } // namespace mini
@@ -152,12 +179,17 @@ int main() {
         SelectExecutor exec(ctx, std::move(sel));
         exec.Init();
 
-        PrintSelectHeader();
-        Tuple out;
-        while (exec.Next(&out)) {
-          PrintTupleAsV1Row(out);
+        auto schema = exec.GetSchema();
+        const std::vector<Column> &cols = schema->GetColumns();
+        std::vector<size_t> widths(cols.size());
+        for (size_t i = 0; i < cols.size(); i++) {
+          widths[i] = std::max(cols[i].name.size(), DefaultWidth(cols[i]));
         }
-        PrintSelectFooter();
+        PrintSelectHeader(cols, widths);
+        PrintRows(cols, widths, exec,
+                  [&schema](const Tuple &t, size_t col_idx) -> std::string {
+                    return t.GetValue(schema, col_idx)->ToString();
+                  });
         break;
       }
 

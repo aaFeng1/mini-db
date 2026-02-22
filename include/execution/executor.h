@@ -1,6 +1,7 @@
 #pragma once
 #include "binder/binder.h"
 #include "binder/bound_statement.h"
+#include "catalog/schema.h"
 #include "execution/execution_context.h"
 #include "storage/table_iterator.h"
 #include "storage/tuple.h"
@@ -50,6 +51,9 @@ public:
 
   void Init() override;
   bool Next(Tuple *tuple) override;
+  std::shared_ptr<Schema> GetSchema() const {
+    return bound_select_stmt_->GetSchema();
+  }
 
 private:
   std::unique_ptr<BoundSelectStatement> bound_select_stmt_;

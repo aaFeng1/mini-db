@@ -1,6 +1,7 @@
 #pragma once
 #include "binder/value.h"
 #include "catalog/catalog.h"
+#include "catalog/schema.h"
 #include "type/data_type.h"
 #include <memory>
 #include <string>
@@ -52,6 +53,7 @@ public:
     return BoundStatementType::BOUND_SELECT;
   }
   TableInfo *Table() const { return table_; }
+  std::shared_ptr<Schema> GetSchema() const { return table_->schema; }
 
 private:
   TableInfo *table_;
