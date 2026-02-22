@@ -83,3 +83,28 @@ TEST_F(BinderTest, BindSelectStatement) {
   auto bound_select = static_cast<BoundSelectStatement *>(bound_stmt.get());
   ASSERT_EQ(bound_select->Table()->name, "t");
 }
+
+// CREATE TABLE t (col1 INTEGER, col2 VARCHAR(10));
+TEST_F(BinderTest, BindCreateTableStatement) {
+  // 创建 CreateTableStatement
+  std::vector<std::pair<std::string, ColumnType>> columns = {
+      {"col1", ColumnType{DataType::INTEGER, 0}},
+      {"col2", ColumnType{DataType::VARCHAR, 10}}};
+  CreateTableStatement create_table_stmt("t", columns);
+
+  // 绑定语句
+  auto bound_stmt = binder_->BindStatement(create_table_stmt);
+  ASSERT_NE(bound_stmt, nullptr);
+  ASSERT_EQ(bound_stmt->Type(), BoundStatementType::BOUND_CREATE_TABLE);
+
+  auto bound_create_table =
+      static_cast<BoundCreateTableStatement *>(bound_stmt.get());
+  ASSERT_EQ(bound_create_table->TableName(), "t");
+  const auto &bound_columns = bound_create_table->Columns();
+  ASSERT_EQ(bound_columns.size(), 2);
+  ASSERT_EQ(bound_columns[0].first, "col1");
+  ASSERT_EQ(bound_columns[0].second.type, DataType::INTEGER);
+  ASSERT_EQ(bound_columns[1].first, "col2");
+  ASSERT_EQ(bound_columns[1].second.type, DataType::VARCHAR);
+  ASSERT_EQ(bound_columns[1].second.length, 10);
+}

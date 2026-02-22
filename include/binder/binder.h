@@ -31,6 +31,7 @@ public:
 
   std::unique_ptr<BoundStatement> BindInsert(const InsertStatement &);
   std::unique_ptr<BoundStatement> BindSelect(const SelectStatement &);
+  std::unique_ptr<BoundStatement> BindCreateTable(const CreateTableStatement &);
 
   bool HasError() const { return error_.has_value(); }
   BindError GetError() const { return error_.value(); }

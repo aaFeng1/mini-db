@@ -3,6 +3,7 @@
 #include "binder/value.h"
 #include "catalog/catalog.h"
 #include "parser/literal.h"
+#include "type/data_type.h"
 #include <memory>
 
 namespace mini {
@@ -14,6 +15,9 @@ Binder::BindStatement(const Statement &statement) {
     return BindInsert(static_cast<const InsertStatement &>(statement));
   case StatementType::SELECT:
     return BindSelect(static_cast<const SelectStatement &>(statement));
+  case StatementType::CREATE_TABLE:
+    return BindCreateTable(
+        static_cast<const CreateTableStatement &>(statement));
   default:
     return nullptr;
   }
@@ -55,6 +59,13 @@ Binder::BindSelect(const SelectStatement &statement) {
     return nullptr;
   }
   return std::make_unique<BoundSelectStatement>(table);
+}
+
+std::unique_ptr<BoundStatement>
+Binder::BindCreateTable(const CreateTableStatement &statement) {
+  std::string table_name = statement.Table_name();
+  std::vector<std::pair<std::string, ColumnType>> columns = statement.Columns();
+  return std::make_unique<BoundCreateTableStatement>(table_name, columns);
 }
 
 } // namespace mini

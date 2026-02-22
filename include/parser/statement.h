@@ -60,19 +60,19 @@ private:
 class CreateTableStatement : public Statement {
 public:
   CreateTableStatement(std::string table_name,
-                       std::vector<std::pair<std::string, DataType>> columns)
+                       std::vector<std::pair<std::string, ColumnType>> columns)
       : table_name_(std::move(table_name)), columns_(std::move(columns)) {}
   ~CreateTableStatement() override = default;
 
   StatementType Type() const override { return StatementType::CREATE_TABLE; }
   std::string Table_name() const { return table_name_; }
-  const std::vector<std::pair<std::string, DataType>> &Columns() const {
+  const std::vector<std::pair<std::string, ColumnType>> &Columns() const {
     return columns_;
   }
 
 private:
   std::string table_name_;
-  std::vector<std::pair<std::string, DataType>> columns_;
+  std::vector<std::pair<std::string, ColumnType>> columns_;
 };
 
 } // namespace mini

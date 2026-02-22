@@ -2,6 +2,7 @@
 #include "parser/lexer.h"
 #include "parser/literal.h"
 #include "parser/statement.h"
+#include "type/data_type.h"
 #include <iostream>
 
 namespace mini {
@@ -75,7 +76,7 @@ std::unique_ptr<Statement> Parser::ParseCreateTableStatement() {
   Expect(TokenType::TOKEN_TABLE);
   Token table_name = Expect(TokenType::TOKEN_IDENTIFIER);
   Expect(TokenType::TOKEN_LEFT_PAREN);
-  std::vector<std::pair<std::string, DataType>> columns;
+  std::vector<std::pair<std::string, ColumnType>> columns;
   do {
     Token next = lexer_->PeekToken();
     if (next.GetType() == TokenType::TOKEN_RIGHT_PAREN) {
@@ -90,17 +91,22 @@ std::unique_ptr<Statement> Parser::ParseCreateTableStatement() {
     Token col_type_token = Expect(TokenType::TOKEN_IDENTIFIER);
     std::string col_name(col_name_token.GetLexeme());
     std::string col_type_str(col_type_token.GetLexeme());
-    DataType col_type;
     if (col_type_str == "INT") {
-      col_type = DataType::INTEGER;
-    } else if (col_type_str == "STRING") {
-      col_type = DataType::VARCHAR;
+      columns.emplace_back(col_name, ColumnType::Integer());
+    } else if (col_type_str == "VARCHAR") {
+      // VARCHAR(length)
+      Expect(TokenType::TOKEN_LEFT_PAREN);
+
+      Token length_token = Expect(TokenType::TOKEN_NUMBER);
+      uint32_t length = std::stoul(std::string(length_token.GetLexeme()));
+      columns.emplace_back(col_name, ColumnType::Varchar(length));
+
+      Expect(TokenType::TOKEN_RIGHT_PAREN);
     } else {
       error_ = ParserError(ErrorKind::ERROR_UNSUPPORTED_TOKEN,
                            col_type_token.GetSpan(), "Unsupported data type.");
       return nullptr;
     }
-    columns.emplace_back(col_name, col_type);
   } while (true);
   Expect(TokenType::TOKEN_RIGHT_PAREN);
   Expect(TokenType::TOKEN_SEMICOLON);

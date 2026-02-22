@@ -1,13 +1,18 @@
 #pragma once
 #include "binder/value.h"
 #include "catalog/catalog.h"
+#include "type/data_type.h"
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace mini {
 
-enum class BoundStatementType { BOUND_INSERT, BOUND_SELECT };
+enum class BoundStatementType {
+  BOUND_INSERT,
+  BOUND_SELECT,
+  BOUND_CREATE_TABLE
+};
 
 class BoundStatement {
 public:
@@ -50,6 +55,26 @@ public:
 
 private:
   TableInfo *table_;
+};
+
+class BoundCreateTableStatement : public BoundStatement {
+public:
+  BoundCreateTableStatement(
+      std::string table_name,
+      std::vector<std::pair<std::string, ColumnType>> columns)
+      : table_name_(std::move(table_name)), columns_(std::move(columns)) {}
+  ~BoundCreateTableStatement() override = default;
+  BoundStatementType Type() const override {
+    return BoundStatementType::BOUND_CREATE_TABLE;
+  }
+  const std::string &TableName() const { return table_name_; }
+  const std::vector<std::pair<std::string, ColumnType>> &Columns() const {
+    return columns_;
+  }
+
+private:
+  std::string table_name_;
+  std::vector<std::pair<std::string, ColumnType>> columns_;
 };
 
 } // namespace mini
