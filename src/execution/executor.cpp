@@ -103,4 +103,13 @@ void CreateTableExecutor::Init() {
 
 bool CreateTableExecutor::Next(Tuple *) { return !done_; }
 
+void CreateIndexExecutor::Init() {
+  Context().GetCatalog().CreateIndex(bound_create_index_stmt_->IndexName(),
+                                     bound_create_index_stmt_->TableName(),
+                                     bound_create_index_stmt_->ColumnIds()[0]);
+  done_ = true;
+}
+
+bool CreateIndexExecutor::Next(Tuple *) { return !done_; }
+
 } // namespace mini

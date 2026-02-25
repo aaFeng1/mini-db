@@ -80,4 +80,22 @@ private:
   bool done_{false};
 };
 
+class CreateIndexExecutor : public Executor {
+public:
+  explicit CreateIndexExecutor(
+      ExecutionContext &context,
+      std::unique_ptr<BoundCreateIndexStatement> bound_create_index_stmt)
+      : Executor(context),
+        bound_create_index_stmt_(std::move(bound_create_index_stmt)) {}
+
+  ~CreateIndexExecutor() override = default;
+
+  void Init() override;
+  bool Next(Tuple *) override;
+
+private:
+  std::unique_ptr<BoundCreateIndexStatement> bound_create_index_stmt_;
+  bool done_{false};
+};
+
 } // namespace mini
