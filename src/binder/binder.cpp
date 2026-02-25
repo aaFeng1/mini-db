@@ -4,7 +4,9 @@
 #include "catalog/catalog.h"
 #include "parser/literal.h"
 #include "type/data_type.h"
+#include <cstdint>
 #include <memory>
+#include <sys/types.h>
 
 namespace mini {
 
@@ -18,6 +20,10 @@ Binder::BindStatement(const Statement &statement) {
   case StatementType::CREATE_TABLE:
     return BindCreateTable(
         static_cast<const CreateTableStatement &>(statement));
+  case StatementType::CREATE_INDEX:
+    return BindCreateIndex(
+        static_cast<const CreateIndexStatement &>(statement));
+
   default:
     return nullptr;
   }
@@ -66,6 +72,20 @@ Binder::BindCreateTable(const CreateTableStatement &statement) {
   std::string table_name = statement.Table_name();
   std::vector<std::pair<std::string, ColumnType>> columns = statement.Columns();
   return std::make_unique<BoundCreateTableStatement>(table_name, columns);
+}
+
+std::unique_ptr<BoundStatement>
+Binder::BindCreateIndex(const CreateIndexStatement &statement) {
+  std::string index_name = statement.Index_name();
+  std::string table_name = statement.Table_name();
+  TableInfo *table = catalog_.GetTable(table_name);
+
+  uint32_t column_id =
+      table->schema->GetColumnIndex(statement.Column_names()[0]);
+  std::vector<uint32_t> column_ids{column_id};
+
+  return std::make_unique<BoundCreateIndexStatement>(index_name, table_name,
+                                                     column_ids);
 }
 
 } // namespace mini

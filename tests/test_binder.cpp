@@ -108,3 +108,29 @@ TEST_F(BinderTest, BindCreateTableStatement) {
   ASSERT_EQ(bound_columns[1].second.type, DataType::VARCHAR);
   ASSERT_EQ(bound_columns[1].second.length, 10);
 }
+
+// CREATE INDEX idx ON t (col1);
+TEST_F(BinderTest, BindCreateIndexStatement) {
+  // 首先在 catalog 中创建表 t
+  auto schema = std::make_shared<Schema>();
+  schema->AddColumn("col1", DataType::INTEGER);
+  schema->AddColumn("col2", DataType::VARCHAR, 10);
+  catalog_->CreateTable("t", schema);
+
+  // 创建 CreateIndexStatement
+  std::vector<std::string> column_names = {"col1"};
+  CreateIndexStatement create_index_stmt("idx", "t", column_names);
+
+  // 绑定语句
+  auto bound_stmt = binder_->BindStatement(create_index_stmt);
+  ASSERT_NE(bound_stmt, nullptr);
+  ASSERT_EQ(bound_stmt->Type(), BoundStatementType::BOUND_CREATE_INDEX);
+
+  auto bound_create_index =
+      static_cast<BoundCreateIndexStatement *>(bound_stmt.get());
+  ASSERT_EQ(bound_create_index->IndexName(), "idx");
+  ASSERT_EQ(bound_create_index->TableName(), "t");
+  const auto &bound_column_ids = bound_create_index->ColumnIds();
+  ASSERT_EQ(bound_column_ids.size(), 1);
+  ASSERT_EQ(bound_column_ids[0], 0); // col1 在 schema 中的索引是 0
+}

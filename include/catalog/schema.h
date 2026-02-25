@@ -1,6 +1,7 @@
 #pragma once
 #include "catalog/column.h"
 #include "type/data_type.h"
+#include <cstdint>
 #include <stdexcept>
 #include <vector>
 
@@ -37,6 +38,16 @@ public:
       throw std::out_of_range("Schema::GetColumn: index out of range");
     }
     return columns_[index];
+  }
+
+  uint32_t GetColumnIndex(const std::string &name) const {
+    for (size_t i = 0; i < columns_.size(); ++i) {
+      if (columns_[i].name == name) {
+        return i;
+      }
+    }
+    throw std::invalid_argument("Schema::GetColumnIndex: column not found: " +
+                                name);
   }
 
 private:
