@@ -7,7 +7,7 @@
 
 namespace mini {
 
-enum class StatementType { INSERT, SELECT, CREATE_TABLE };
+enum class StatementType { INSERT, SELECT, CREATE_TABLE, CREATE_INDEX };
 
 class Statement {
 public:
@@ -73,6 +73,25 @@ public:
 private:
   std::string table_name_;
   std::vector<std::pair<std::string, ColumnType>> columns_;
+};
+
+class CreateIndexStatement : public Statement {
+public:
+  CreateIndexStatement(std::string index_name, std::string table_name,
+                       std::vector<std::string> column_names)
+      : index_name_(std::move(index_name)), table_name_(std::move(table_name)),
+        column_names_(std::move(column_names)) {}
+  ~CreateIndexStatement() override = default;
+
+  StatementType Type() const override { return StatementType::CREATE_INDEX; }
+  std::string Index_name() const { return index_name_; }
+  std::string Table_name() const { return table_name_; }
+  const std::vector<std::string> &Column_names() const { return column_names_; }
+
+private:
+  std::string index_name_;
+  std::string table_name_;
+  std::vector<std::string> column_names_;
 };
 
 } // namespace mini

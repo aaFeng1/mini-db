@@ -193,6 +193,7 @@ Token Lexer::MakeErrorToken(ErrorKind kind, SourceSpan span,
 }
 
 TokenType Lexer::MatchKeyword(std::string_view lexeme) const {
+  // TODO: 用switch有必要吗
   if (lexeme == "SELECT") {
     return TokenType::TOKEN_SELECT;
   } else if (lexeme == "FROM") {
@@ -215,6 +216,10 @@ TokenType Lexer::MatchKeyword(std::string_view lexeme) const {
     return TokenType::TOKEN_CREATE;
   } else if (lexeme == "TABLE") {
     return TokenType::TOKEN_TABLE;
+  } else if (lexeme == "INDEX") {
+    return TokenType::TOKEN_INDEX;
+  } else if (lexeme == "ON") {
+    return TokenType::TOKEN_ON;
   }
   return TokenType::TOKEN_IDENTIFIER;
 }

@@ -33,6 +33,7 @@ public:
   std::unique_ptr<Statement> ParseInsertStatement();
   std::unique_ptr<Statement> ParseSelectStatement();
   std::unique_ptr<Statement> ParseCreateTableStatement();
+  std::unique_ptr<Statement> ParseCreateIndexStatement();
 
   bool HasError() const { return error_.has_value(); }
   ParserError GetError() const { return error_.value(); }

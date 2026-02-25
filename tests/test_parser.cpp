@@ -72,3 +72,19 @@ TEST_F(ParserTest, CreateTable) {
   ASSERT_EQ(columns[1].second.type, DataType::VARCHAR);
   ASSERT_EQ(columns[1].second.length, 255);
 }
+
+// CREATE INDEX idx_name ON t(name);
+// --gtest_filter=ParserTest.CreateIndex
+TEST_F(ParserTest, CreateIndex) {
+  std::string query = "CREATE INDEX idx_name ON t(name);";
+  lexer_ = std::make_unique<Lexer>(query);
+  parser_ = std::make_unique<Parser>(std::move(lexer_));
+  auto stmt = parser_->ParseStatement();
+  ASSERT_EQ(stmt->Type(), StatementType::CREATE_INDEX);
+  auto create_index_stmt = static_cast<CreateIndexStatement *>(stmt.get());
+  ASSERT_EQ(create_index_stmt->Index_name(), "idx_name");
+  ASSERT_EQ(create_index_stmt->Table_name(), "t");
+  const auto &column_names = create_index_stmt->Column_names();
+  ASSERT_EQ(column_names.size(), 1);
+  ASSERT_EQ(column_names[0], "name");
+}

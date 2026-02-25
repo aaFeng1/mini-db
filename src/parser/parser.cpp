@@ -16,8 +16,19 @@ std::unique_ptr<Statement> Parser::ParseStatement() {
     return ParseInsertStatement();
   case TokenType::TOKEN_SELECT:
     return ParseSelectStatement();
-  case TokenType::TOKEN_CREATE:
-    return ParseCreateTableStatement();
+  case TokenType::TOKEN_CREATE: {
+    Expect(TokenType::TOKEN_CREATE);
+    Token next = lexer_->PeekToken();
+    if (next.GetType() == TokenType::TOKEN_TABLE) {
+      return ParseCreateTableStatement();
+    } else if (next.GetType() == TokenType::TOKEN_INDEX) {
+      return ParseCreateIndexStatement();
+    } else {
+      error_ = ParserError(ErrorKind::ERROR_UNSUPPORTED_TOKEN, next.GetSpan(),
+                           "Expected TABLE or INDEX after CREATE.");
+      return nullptr;
+    }
+  }
   default:
     error_ = ParserError(ErrorKind::ERROR_UNSUPPORTED_TOKEN,
                          lexer_->PeekToken().GetSpan(), "unkonw statement.");
@@ -72,7 +83,6 @@ std::unique_ptr<Statement> Parser::ParseSelectStatement() {
 
 std::unique_ptr<Statement> Parser::ParseCreateTableStatement() {
   // TODO: only support "CREATE TABLE table_name (col_name col_type,...);"
-  Expect(TokenType::TOKEN_CREATE);
   Expect(TokenType::TOKEN_TABLE);
   Token table_name = Expect(TokenType::TOKEN_IDENTIFIER);
   Expect(TokenType::TOKEN_LEFT_PAREN);
@@ -112,6 +122,24 @@ std::unique_ptr<Statement> Parser::ParseCreateTableStatement() {
   Expect(TokenType::TOKEN_SEMICOLON);
   return std::make_unique<CreateTableStatement>(
       std::string(table_name.GetLexeme()), std::move(columns));
+}
+
+std::unique_ptr<Statement> Parser::ParseCreateIndexStatement() {
+  // CREATE INDEX idx_stu_id ON stu(id);
+  Expect(TokenType::TOKEN_INDEX);
+  Token index_name = Expect(TokenType::TOKEN_IDENTIFIER);
+  Expect(TokenType::TOKEN_ON);
+  Token table_name = Expect(TokenType::TOKEN_IDENTIFIER);
+  Expect(TokenType::TOKEN_LEFT_PAREN);
+  std::vector<std::string> column_names;
+  // TODO: only support single column index in v1
+  Token column_name_token = Expect(TokenType::TOKEN_IDENTIFIER);
+  column_names.push_back(std::string(column_name_token.GetLexeme()));
+  Expect(TokenType::TOKEN_RIGHT_PAREN);
+  Expect(TokenType::TOKEN_SEMICOLON);
+  return std::make_unique<CreateIndexStatement>(
+      std::string(index_name.GetLexeme()), std::string(table_name.GetLexeme()),
+      std::move(column_names));
 }
 
 Token Parser::Expect(TokenType expected) {
