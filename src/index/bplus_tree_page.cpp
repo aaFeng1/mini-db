@@ -1,6 +1,7 @@
 #include "index/bplus_tree_page.h"
 #include "common/comparator.h"
 #include <cstdint>
+#include <iostream>
 
 namespace mini {
 
@@ -53,6 +54,17 @@ ValueType BPlusTreeLeafPage<KeyType, ValueType, Comparator>::ValueAt(
 }
 
 template <typename KeyType, typename ValueType, typename Comparator>
+void BPlusTreeLeafPage<KeyType, ValueType, Comparator>::SetKeyAt(
+    uint16_t index, const KeyType &key) {
+  array_[index].key = key;
+}
+template <typename KeyType, typename ValueType, typename Comparator>
+void BPlusTreeLeafPage<KeyType, ValueType, Comparator>::SetValueAt(
+    uint16_t index, const ValueType &value) {
+  array_[index].value = value;
+}
+
+template <typename KeyType, typename ValueType, typename Comparator>
 bool BPlusTreeLeafPage<KeyType, ValueType, Comparator>::Lookup(
     const KeyType &key, std::vector<ValueType> *value) const {
   bool flag = false;
@@ -100,7 +112,21 @@ bool BPlusTreeLeafPage<KeyType, ValueType, Comparator>::Split(
   }
   this->SetKeyCount(key_count - half_count);
   new_page->SetKeyCount(half_count);
+
+  new_page->SetNextPageId(this->GetNextPageId());
+  this->SetNextPageId(new_page->GetPageId());
   return true;
+}
+
+template <typename KeyType, typename ValueType, typename Comparator>
+void BPlusTreeLeafPage<KeyType, ValueType, Comparator>::Print(
+    std::ostream &os) const {
+  os << "Leaf Page: " << this->GetPageId() << " -> " << this->GetNextPageId()
+     << std::endl;
+  for (uint16_t i = 0; i < this->GetKeyCount() && i < 5; ++i) {
+    os << "key: " << array_[i].key << " value: " << array_[i].value.page_id
+       << ":" << array_[i].value.slot_id << std::endl;
+  }
 }
 
 // ---------------------------BPlusTreeInternalPage-------------------------------
@@ -114,6 +140,17 @@ template <typename KeyType, typename ValueType, typename Comparator>
 ValueType BPlusTreeInternalPage<KeyType, ValueType, Comparator>::ValueAt(
     uint16_t index) const {
   return array_[index].value;
+}
+
+template <typename KeyType, typename ValueType, typename Comparator>
+void BPlusTreeInternalPage<KeyType, ValueType, Comparator>::SetKeyAt(
+    uint16_t index, const KeyType &key) {
+  array_[index].key = key;
+}
+template <typename KeyType, typename ValueType, typename Comparator>
+void BPlusTreeInternalPage<KeyType, ValueType, Comparator>::SetValueAt(
+    uint16_t index, const ValueType &value) {
+  array_[index].value = value;
 }
 
 template <typename KeyType, typename ValueType, typename Comparator>
@@ -137,6 +174,32 @@ bool BPlusTreeInternalPage<KeyType, ValueType, Comparator>::Insert(
 }
 
 template <typename KeyType, typename ValueType, typename Comparator>
+bool BPlusTreeInternalPage<KeyType, ValueType, Comparator>::InsertAfter(
+    const ValueType &old_value, const KeyType &new_key,
+    const ValueType &new_value) {
+  uint16_t key_count = this->GetKeyCount();
+  uint16_t index = 0;
+  for (; index < key_count; ++index) {
+    if (array_[index].value == old_value) {
+      break;
+    }
+  }
+  if (index >= key_count) {
+    return false;
+  }
+  if (this->IsFull()) {
+    return false;
+  }
+  for (uint16_t i = key_count; i > index + 1; --i) {
+    array_[i] = array_[i - 1];
+  }
+  array_[index + 1].key = new_key;
+  array_[index + 1].value = new_value;
+  this->SetKeyCount(key_count + 1);
+  return true;
+}
+
+template <typename KeyType, typename ValueType, typename Comparator>
 bool BPlusTreeInternalPage<KeyType, ValueType, Comparator>::Split(
     BPlusTreeInternalPage *new_page) {
   uint16_t key_count = this->GetKeyCount();
@@ -150,6 +213,15 @@ bool BPlusTreeInternalPage<KeyType, ValueType, Comparator>::Split(
   this->SetKeyCount(key_count - half_count);
   new_page->SetKeyCount(half_count);
   return true;
+}
+
+template <typename KeyType, typename ValueType, typename Comparator>
+void BPlusTreeInternalPage<KeyType, ValueType, Comparator>::Print(
+    std::ostream &os) const {
+  os << "Internal Page: " << this->GetPageId() << std::endl;
+  for (uint16_t i = 0; i < this->GetKeyCount(); ++i) {
+    os << "key: " << array_[i].key << " pid: " << array_[i].value << std::endl;
+  }
 }
 
 template class BPlusTreeLeafPage<int32_t, RID, mini::IntComparator>;

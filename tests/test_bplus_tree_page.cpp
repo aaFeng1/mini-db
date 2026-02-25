@@ -20,13 +20,13 @@ TEST_F(BPlusTreePageTest, BasicStruct) {
   Page page;
   auto *leaf_page =
       BPlusTreeLeafPage<int32_t, page_id_t, mini::IntComparator>::From(&page);
-  leaf_page->Init();
+  leaf_page->Init(0);
   EXPECT_TRUE(leaf_page->IsLeaf());
   std::cout << "Max key count in leaf page: " << leaf_page->GetMaxKeyCount()
             << std::endl;
   auto *internal_page =
       BPlusTreeInternalPage<int32_t, RID, mini::IntComparator>::From(&page);
-  internal_page->Init();
+  internal_page->Init(0);
   EXPECT_FALSE(internal_page->IsLeaf());
   std::cout << "Max key count in internal page: "
             << internal_page->GetMaxKeyCount() << std::endl;
@@ -38,7 +38,7 @@ TEST_F(BPlusTreePageTest, BasicLeafPageInsert) {
   Page page;
   auto *leaf_page =
       BPlusTreeLeafPage<int32_t, RID, mini::IntComparator>::From(&page);
-  leaf_page->Init();
+  leaf_page->Init(0);
   for (int i = 0; i < 339; ++i) {
     EXPECT_TRUE(leaf_page->Insert(i, RID{i, static_cast<uint16_t>(i)}));
   }
@@ -58,7 +58,7 @@ TEST_F(BPlusTreePageTest, DuplicateKeyLeafPageInsert) {
   Page page;
   auto *leaf_page =
       BPlusTreeLeafPage<int32_t, RID, mini::IntComparator>::From(&page);
-  leaf_page->Init();
+  leaf_page->Init(0);
   for (int i = 0; i < 10; ++i) {
     EXPECT_TRUE(leaf_page->Insert(2, RID{i, static_cast<uint16_t>(i)}));
   }
@@ -101,8 +101,8 @@ TEST_F(BPlusTreePageTest, SplitLeafPage) {
       BPlusTreeLeafPage<int32_t, RID, mini::IntComparator>::From(&page1);
   auto *leaf_page2 =
       BPlusTreeLeafPage<int32_t, RID, mini::IntComparator>::From(&page2);
-  leaf_page1->Init();
-  leaf_page2->Init();
+  leaf_page1->Init(0);
+  leaf_page2->Init(0);
   for (int i = 0; i < 339; ++i) {
     EXPECT_TRUE(leaf_page1->Insert(i, RID{i, static_cast<uint16_t>(i)}));
   }
@@ -128,8 +128,8 @@ TEST_F(BPlusTreePageTest, SplitLeafPageWithLessKeys) {
       BPlusTreeLeafPage<int32_t, RID, mini::IntComparator>::From(&page1);
   auto *leaf_page2 =
       BPlusTreeLeafPage<int32_t, RID, mini::IntComparator>::From(&page2);
-  leaf_page1->Init();
-  leaf_page2->Init();
+  leaf_page1->Init(0);
+  leaf_page2->Init(0);
   EXPECT_TRUE(leaf_page1->Insert(1, RID{1, static_cast<uint16_t>(1)}));
   EXPECT_FALSE(leaf_page1->Split(leaf_page2)); // 不够分裂
 }
@@ -141,7 +141,7 @@ TEST_F(BPlusTreePageTest, BasicInternalPageInsert) {
   auto *internal_page =
       BPlusTreeInternalPage<int32_t, page_id_t, mini::IntComparator>::From(
           &page);
-  internal_page->Init();
+  internal_page->Init(0);
   for (int i = 0; i < 509; ++i) {
     EXPECT_TRUE(internal_page->Insert(i, i + 1000));
   }
@@ -163,8 +163,8 @@ TEST_F(BPlusTreePageTest, SplitInternalPage) {
   auto *internal_page2 =
       BPlusTreeInternalPage<int32_t, page_id_t, mini::IntComparator>::From(
           &page2);
-  internal_page1->Init();
-  internal_page2->Init();
+  internal_page1->Init(0);
+  internal_page2->Init(0);
   for (int i = 0; i < 509; ++i) {
     EXPECT_TRUE(internal_page1->Insert(i, i + 1000));
   }
@@ -190,8 +190,8 @@ TEST_F(BPlusTreePageTest, SplitInternalPageWithLessKeys) {
   auto *internal_page2 =
       BPlusTreeInternalPage<int32_t, page_id_t, mini::IntComparator>::From(
           &page2);
-  internal_page1->Init();
-  internal_page2->Init();
+  internal_page1->Init(0);
+  internal_page2->Init(0);
   EXPECT_TRUE(internal_page1->Insert(1, 1001));
   EXPECT_FALSE(internal_page1->Split(internal_page2)); // 不够分裂
   EXPECT_TRUE(internal_page1->Insert(2, 1002));

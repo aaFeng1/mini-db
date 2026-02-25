@@ -50,11 +50,19 @@ public:
     return reinterpret_cast<BPlusTreeLeafPage *>(page->GetData());
   }
 
+  static constexpr uint16_t TEST_MAX_KEY_COUNT = 6;
+
   static constexpr uint16_t MAX_KEY_COUNT =
+#ifdef TEST_FOR_BPLUS_TREE
+      TEST_MAX_KEY_COUNT;
+#else
       (PAGE_SIZE - sizeof(BPlusTreePageHeader)) / sizeof(MappingType);
+#endif
 
   KeyType KeyAt(uint16_t index) const;
   ValueType ValueAt(uint16_t index) const;
+  void SetKeyAt(uint16_t index, const KeyType &key);
+  void SetValueAt(uint16_t index, const ValueType &value);
 
   bool Lookup(const KeyType &key, std::vector<ValueType> *value) const;
   bool Insert(const KeyType &key, const ValueType &value);
@@ -63,14 +71,16 @@ public:
   bool IsFull() const { return this->GetKeyCount() >= MAX_KEY_COUNT; }
   bool Split(BPlusTreeLeafPage *new_page);
 
-  void Init() {
+  void Init(page_id_t page_id) {
     this->SetParentPageId(INVALID_PAGE_ID);
     this->SetKeyCount(0);
     this->SetMaxKeyCount(MAX_KEY_COUNT);
-    this->SetPageId(INVALID_PAGE_ID);
+    this->SetPageId(page_id);
     this->SetNextPageId(INVALID_PAGE_ID);
     this->header_.is_leaf = true;
   }
+
+  void Print(std::ostream &os) const; // for debug
 
 private:
   MappingType array_[1];
@@ -88,26 +98,39 @@ public:
     return reinterpret_cast<BPlusTreeInternalPage *>(page->GetData());
   }
 
+  static constexpr uint16_t TEST_MAX_KEY_COUNT = 6;
+
   static constexpr uint16_t MAX_KEY_COUNT =
+#ifdef TEST_FOR_BPLUS_TREE
+      TEST_MAX_KEY_COUNT;
+#else
       (PAGE_SIZE - sizeof(BPlusTreePageHeader)) / sizeof(MappingType);
+#endif
 
   KeyType KeyAt(uint16_t index) const;
   ValueType ValueAt(uint16_t index) const;
+  void SetKeyAt(uint16_t index, const KeyType &key);
+  void SetValueAt(uint16_t index, const ValueType &value);
 
   bool Insert(const KeyType &key, const ValueType &value);
+  bool
+  InsertAfter(const ValueType &old_value, const KeyType &new_key,
+              const ValueType &new_value);  // insert new_key after old_value
   bool Remove(const KeyType &key) = delete; //暂不实现删除功能
 
   bool IsFull() const { return this->GetKeyCount() >= MAX_KEY_COUNT; }
   bool Split(BPlusTreeInternalPage *new_page);
 
-  void Init() {
+  void Init(page_id_t page_id) {
     this->SetParentPageId(INVALID_PAGE_ID);
     this->SetKeyCount(0);
     this->SetMaxKeyCount(MAX_KEY_COUNT);
-    this->SetPageId(INVALID_PAGE_ID);
+    this->SetPageId(page_id);
     this->SetNextPageId(INVALID_PAGE_ID);
     this->header_.is_leaf = false;
   }
+
+  void Print(std::ostream &os) const; // for debug
 
 private:
   MappingType array_[1];
