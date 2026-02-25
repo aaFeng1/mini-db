@@ -73,3 +73,28 @@ TEST_F(CatalogTest, CreateAndGetMultipleTables) {
 
   catalog.ListTables();
 }
+
+// 索引的创建与获取
+TEST_F(CatalogTest, CreateAndGetIndex) {
+  Catalog catalog(bp_.get());
+
+  auto schema = std::make_shared<Schema>();
+  schema->AddColumn("id", DataType::INTEGER);
+  schema->AddColumn("name", DataType::VARCHAR, 10);
+  catalog.CreateTable("users", schema);
+
+  IndexInfo *index_info = catalog.CreateIndex("idx_id", "users", 0);
+  EXPECT_NE(index_info, nullptr);
+  EXPECT_EQ(index_info->index_name, "idx_id");
+  EXPECT_EQ(index_info->table_name, "users");
+  EXPECT_EQ(index_info->key_schema->GetColumnCount(), 1);
+  EXPECT_EQ(index_info->key_schema->GetColumn(0).name, "id");
+  EXPECT_EQ(index_info->key_schema->GetColumn(0).type, DataType::INTEGER);
+
+  IndexInfo *fetched_index = catalog.GetIndex("idx_id");
+  EXPECT_NE(fetched_index, nullptr);
+  EXPECT_EQ(fetched_index->index_name, "idx_id");
+  EXPECT_EQ(fetched_index->table_name, "users");
+
+  catalog.ListIndexes();
+}
