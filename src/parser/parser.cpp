@@ -77,6 +77,23 @@ std::unique_ptr<Statement> Parser::ParseSelectStatement() {
   Expect(TokenType::TOKEN_STAR);
   Expect(TokenType::TOKEN_FROM);
   Token table_name = Expect(TokenType::TOKEN_IDENTIFIER);
+
+  Token next = lexer_->PeekToken();
+  if (next.GetType() == TokenType::TOKEN_WHERE) {
+    Expect(TokenType::TOKEN_WHERE);
+    // SELECT * FROM stu WHERE id = 1;
+    Token column_name_token = Expect(TokenType::TOKEN_IDENTIFIER);
+    Expect(TokenType::TOKEN_EQUAL);
+    // TODO: only support int literal in where clause in v1
+    Token value_token = Expect(TokenType::TOKEN_NUMBER);
+    Expect(TokenType::TOKEN_SEMICOLON);
+    return std::make_unique<SelectStatement>(
+        std::string(table_name.GetLexeme()), true, true,
+        std::string(column_name_token.GetLexeme()),
+        std::make_unique<IntValue>(
+            std::stoi(std::string(value_token.GetLexeme()))));
+  }
+
   Expect(TokenType::TOKEN_SEMICOLON);
   return std::make_unique<SelectStatement>(std::string(table_name.GetLexeme()));
 }

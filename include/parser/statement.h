@@ -1,4 +1,5 @@
 #pragma once
+#include "binder/value.h"
 #include "parser/literal.h"
 #include "type/data_type.h"
 #include <memory>
@@ -42,19 +43,30 @@ class SelectStatement : public Statement {
 public:
   // SelectStatement(std::string table_name, std::vector<std::string> columns)
   //     : table_name_(std::move(table_name)), columns_(std::move(columns)) {}
-  SelectStatement(std::string table_name)
-      : table_name_(std::move(table_name)), is_select_all_(true) {}
+  SelectStatement(std::string table_name, bool is_select_all = true,
+                  bool has_where = false, std::string where_column = "",
+                  std::unique_ptr<Value> where_value = nullptr)
+      : table_name_(std::move(table_name)), is_select_all_(is_select_all),
+        has_where_(has_where), where_column_(where_column),
+        where_value_(std::move(where_value)) {}
   ~SelectStatement() override = default;
 
   StatementType Type() const override { return StatementType::SELECT; }
   std::string Table_name() const { return table_name_; }
   bool Select_all() const { return is_select_all_; }
+  bool Has_where() const { return has_where_; }
+  std::string Where_column() const { return where_column_; }
+  const Value *Where_value() const { return where_value_.get(); }
 
 private:
   std::string table_name_;
   // TODO: support * in v1
   // std::vector<std::string> columns_;
   bool is_select_all_;
+
+  bool has_where_{false};
+  std::string where_column_;
+  std::unique_ptr<Value> where_value_;
 };
 
 class CreateTableStatement : public Statement {

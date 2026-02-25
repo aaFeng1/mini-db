@@ -1,3 +1,4 @@
+#include "binder/value.h"
 #include "parser/lexer.h"
 #include "parser/literal.h"
 #include "parser/parser.h"
@@ -87,4 +88,23 @@ TEST_F(ParserTest, CreateIndex) {
   const auto &column_names = create_index_stmt->Column_names();
   ASSERT_EQ(column_names.size(), 1);
   ASSERT_EQ(column_names[0], "name");
+}
+
+// SELECT * FROM t WHERE id = 1;
+TEST_F(ParserTest, SelectWithWhereClause) {
+  std::string query = "SELECT * FROM t WHERE id = 1;";
+  lexer_ = std::make_unique<Lexer>(query);
+  parser_ = std::make_unique<Parser>(std::move(lexer_));
+  auto stmt = parser_->ParseStatement();
+  ASSERT_EQ(stmt->Type(), StatementType::SELECT);
+  auto select_stmt = static_cast<SelectStatement *>(stmt.get());
+  ASSERT_EQ(select_stmt->Table_name(), "t");
+  ASSERT_TRUE(select_stmt->Select_all());
+  ASSERT_TRUE(select_stmt->Has_where());
+  ASSERT_EQ(select_stmt->Where_column(), "id");
+  auto where_value = select_stmt->Where_value();
+  ASSERT_NE(where_value, nullptr);
+  auto int_literal = dynamic_cast<const IntValue *>(where_value);
+  ASSERT_NE(int_literal, nullptr);
+  ASSERT_EQ(int_literal->GetValue(), 1);
 }
