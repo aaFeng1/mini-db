@@ -68,16 +68,16 @@ template <typename KeyType, typename ValueType, typename Comparator>
 bool BPlusTreeLeafPage<KeyType, ValueType, Comparator>::Lookup(
     const KeyType &key, std::vector<ValueType> *value) const {
   bool flag = false;
-  uint16_t left = 0, right = this->GetKeyCount() - 1;
+  int left = 0, right = this->GetKeyCount() - 1;
   while (left <= right) {
-    uint16_t mid = left + (right - left) / 2;
+    int mid = left + (right - left) / 2;
     if (Comparator{}(key, array_[mid].key) < 0) {
       right = mid - 1;
     } else if (Comparator{}(key, array_[mid].key) > 0) {
       left = mid + 1;
     } else {
       // 找到了一个匹配的key，向两边遍历
-      uint16_t i = mid;
+      int i = mid;
       while (true) {
         if (Comparator{}(key, array_[i].key) != 0)
           break;

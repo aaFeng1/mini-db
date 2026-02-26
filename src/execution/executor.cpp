@@ -150,10 +150,26 @@ void CreateTableExecutor::Init() {
 bool CreateTableExecutor::Next(Tuple *) { return !done_; }
 
 void CreateIndexExecutor::Init() {
-  Context().GetCatalog().CreateIndex(bound_create_index_stmt_->IndexName(),
-                                     bound_create_index_stmt_->TableName(),
-                                     bound_create_index_stmt_->ColumnIds()[0]);
+  auto index = Context().GetCatalog().CreateIndex(
+      bound_create_index_stmt_->IndexName(),
+      bound_create_index_stmt_->TableName(),
+      bound_create_index_stmt_->ColumnIds()[0]);
   //  TODO: 将表中数据拿到索引里
+  TableInfo *table =
+      Context().GetCatalog().GetTable(bound_create_index_stmt_->TableName());
+  auto col_id = bound_create_index_stmt_->ColumnIds()[0];
+  auto col = table->schema->GetColumns()[col_id];
+  auto iter = table->table->Begin();
+  auto end = table->table->End();
+  while (iter != end) {
+    if (col.type == DataType::INTEGER) {
+      index->index->InsertEntry(*iter, iter.GetRID());
+    } else if (col.type == DataType::VARCHAR) {
+      throw std::runtime_error(
+          "CreateIndexExecutor: unsupported column type for indexing");
+    }
+    ++iter;
+  }
   done_ = true;
 }
 

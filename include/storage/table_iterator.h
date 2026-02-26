@@ -17,6 +17,8 @@ public:
   bool operator==(const TableIterator &other) const;
   bool operator!=(const TableIterator &other) const;
 
+  RID GetRID() const { return rid_; }
+
 private:
   void AdvanceToNextValid();
 
