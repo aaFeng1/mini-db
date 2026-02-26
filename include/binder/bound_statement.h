@@ -48,8 +48,11 @@ private:
 
 class BoundSelectStatement : public BoundStatement {
 public:
-  BoundSelectStatement(TableInfo *table, IndexInfo *index_info = nullptr)
-      : table_(table), index_info_(index_info) {}
+  BoundSelectStatement(TableInfo *table, IndexInfo *index_info = nullptr,
+                       bool has_where = false, std::string where_column = "",
+                       std::unique_ptr<Value> where_value = nullptr)
+      : table_(table), index_info_(index_info), has_where_(has_where),
+        where_column_(where_column), where_value_(std::move(where_value)) {}
   ~BoundSelectStatement() override = default;
   BoundStatementType Type() const override {
     return BoundStatementType::BOUND_SELECT;
@@ -57,10 +60,25 @@ public:
   TableInfo *Table() const { return table_; }
   std::shared_ptr<Schema> GetSchema() const { return table_->schema; }
   IndexInfo *Index() const { return index_info_; }
+  bool HasWhere() const { return has_where_; }
+  const std::string &WhereColumn() const { return where_column_; }
+  uint32_t WhereColumnId() const {
+    for (size_t i = 0; i < table_->schema->GetColumns().size(); ++i) {
+      if (table_->schema->GetColumns()[i].name == where_column_) {
+        return i;
+      }
+    }
+    throw std::runtime_error("Where column not found in schema");
+  }
+  const Value *WhereValue() const { return where_value_.get(); }
 
 private:
   TableInfo *table_;
   IndexInfo *index_info_;
+
+  bool has_where_;
+  std::string where_column_;
+  std::unique_ptr<Value> where_value_;
 };
 
 class BoundCreateTableStatement : public BoundStatement {

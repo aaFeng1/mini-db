@@ -4,6 +4,7 @@
 #include "index/bplus_tree.h"
 #include "storage/buffer_pool.h"
 #include "storage/tuple.h"
+#include <cassert>
 #include <memory>
 
 namespace mini {
@@ -41,6 +42,7 @@ public:
   void DeleteEntry(const Tuple &, const RID &) override {}
 
   bool ScanKey(const Value &key, std::vector<RID> *result) override {
+    assert(key.Type() == DataType::INTEGER);
     auto &k = static_cast<const IntValue &>(key);
     return tree_.GetValue(k.GetValue(), result);
   }

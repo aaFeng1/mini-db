@@ -65,10 +65,22 @@ Binder::BindSelect(const SelectStatement &statement) {
     return nullptr;
   }
   IndexInfo *index_info = nullptr;
+  std::unique_ptr<Value> where_value = nullptr;
   if (statement.Has_where()) {
     index_info = catalog_.GetIndex(table_name, statement.Where_column());
+    auto value = statement.Where_value();
+    if (const IntValue *int_val = dynamic_cast<const IntValue *>(value)) {
+      where_value = std::make_unique<IntValue>(int_val->GetValue());
+    } else {
+      // unsupported literal type in where clause
+      error_ = BindError("Unsupported literal type in WHERE clause",
+                         SourceSpan{0, 0, 0, 0});
+      return nullptr;
+    }
   }
-  return std::make_unique<BoundSelectStatement>(table, index_info);
+  return std::make_unique<BoundSelectStatement>(
+      table, index_info, statement.Has_where(), statement.Where_column(),
+      std::move(where_value));
 }
 
 std::unique_ptr<BoundStatement>

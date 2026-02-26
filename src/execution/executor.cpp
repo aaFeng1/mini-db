@@ -61,18 +61,62 @@ void SelectExecutor::Init() {
   table_iter_ = table->table->Begin();
   end_ = table->table->End();
 
+  if (bound_select_stmt_->HasWhere()) {
+    auto index = bound_select_stmt_->Index();
+    if (index != nullptr) {
+      auto where_value = bound_select_stmt_->WhereValue();
+      if (const IntValue *int_val =
+              dynamic_cast<const IntValue *>(where_value)) {
+        index->index->ScanKey(*int_val, &index_scan_result_);
+      } else {
+        throw std::runtime_error("Unsupported literal type in WHERE clause");
+      }
+    }
+  }
+
   inited_ = true;
 }
 
 bool SelectExecutor::Next(Tuple *ret) {
   if (!inited_)
     return false;
-  if (table_iter_ == end_)
-    return false;
 
-  *ret = *table_iter_;
-  ++table_iter_;
-  return true;
+  if (!index_scan_result_.empty()) {
+    if (index_scan_pos_ >= index_scan_result_.size()) {
+      return false;
+    }
+    RID rid = index_scan_result_[index_scan_pos_++];
+    return bound_select_stmt_->Table()->table->GetTuple(rid, ret);
+  }
+
+  while (table_iter_ != end_) {
+    *ret = *table_iter_;
+    if (bound_select_stmt_->HasWhere()) {
+      auto where_value = bound_select_stmt_->WhereValue();
+      auto col_id = bound_select_stmt_->WhereColumnId();
+      const auto &col =
+          bound_select_stmt_->Table()->schema->GetColumns()[col_id];
+      const char *data = ret->Data() + col.offset;
+
+      if (where_value->Type() == DataType::INTEGER) {
+        const IntValue *int_val = dynamic_cast<const IntValue *>(where_value);
+        int32_t val;
+        memcpy(&val, data, sizeof(int32_t));
+        if (val == int_val->GetValue()) {
+          ++table_iter_;
+          return true;
+        }
+      } else {
+        throw std::runtime_error("Unsupported literal type in WHERE clause");
+      }
+      ++table_iter_;
+      continue;
+    }
+    ++table_iter_;
+
+    return true;
+  }
+  return false;
 }
 
 void CreateTableExecutor::Init() {
@@ -107,6 +151,7 @@ void CreateIndexExecutor::Init() {
   Context().GetCatalog().CreateIndex(bound_create_index_stmt_->IndexName(),
                                      bound_create_index_stmt_->TableName(),
                                      bound_create_index_stmt_->ColumnIds()[0]);
+  //  TODO: 将表中数据拿到索引里
   done_ = true;
 }
 

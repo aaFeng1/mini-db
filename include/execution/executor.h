@@ -2,6 +2,7 @@
 #include "binder/binder.h"
 #include "binder/bound_statement.h"
 #include "catalog/schema.h"
+#include "common/rid.h"
 #include "execution/execution_context.h"
 #include "storage/table_iterator.h"
 #include "storage/tuple.h"
@@ -60,6 +61,9 @@ private:
   TableIterator table_iter_;
   TableIterator end_;
   bool inited_;
+
+  std::vector<RID> index_scan_result_;
+  size_t index_scan_pos_{0};
 };
 
 class CreateTableExecutor : public Executor {

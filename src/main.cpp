@@ -210,6 +210,23 @@ int main() {
         break;
       }
 
+      case BoundStatementType::BOUND_CREATE_INDEX: {
+        auto *raw = dynamic_cast<BoundCreateIndexStatement *>(bound.release());
+        if (!raw) {
+          std::cerr << "[exec error] bad bound stmt type\n";
+          continue;
+        }
+        std::unique_ptr<BoundCreateIndexStatement> ci(raw);
+
+        // 改动：传 ctx
+        CreateIndexExecutor exec(ctx, std::move(ci));
+        exec.Init();
+        while (exec.Next(nullptr)) {
+        }
+        std::cout << "OK (create index)\n";
+        break;
+      }
+
         // case BoundStatementType::BOUND_DELETE: {
         //   auto *raw = dynamic_cast<BoundDeleteStatement *>(bound.release());
         //   if (!raw) {
