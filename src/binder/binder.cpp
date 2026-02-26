@@ -64,7 +64,11 @@ Binder::BindSelect(const SelectStatement &statement) {
         BindError("Table not found: " + table_name, SourceSpan{0, 0, 0, 0});
     return nullptr;
   }
-  return std::make_unique<BoundSelectStatement>(table);
+  IndexInfo *index_info = nullptr;
+  if (statement.Has_where()) {
+    index_info = catalog_.GetIndex(table_name, statement.Where_column());
+  }
+  return std::make_unique<BoundSelectStatement>(table, index_info);
 }
 
 std::unique_ptr<BoundStatement>

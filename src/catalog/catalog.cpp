@@ -76,10 +76,16 @@ IndexInfo *Catalog::CreateIndex(const std::string &index_name,
   return indexes_[index_name].get();
 }
 
-IndexInfo *Catalog::GetIndex(const std::string &index_name) {
-  auto it = indexes_.find(index_name);
-  if (it != indexes_.end()) {
-    return it->second.get();
+IndexInfo *Catalog::GetIndex(const std::string &table_name,
+                             const std::string &index_name) {
+  auto it = table_to_indexes_.find(table_name);
+  if (it == table_to_indexes_.end()) {
+    return nullptr;
+  }
+  for (IndexInfo *index_info : it->second) {
+    if (index_info->index_name == index_name) {
+      return index_info;
+    }
   }
   return nullptr;
 }

@@ -48,16 +48,19 @@ private:
 
 class BoundSelectStatement : public BoundStatement {
 public:
-  BoundSelectStatement(TableInfo *table) : table_(table) {}
+  BoundSelectStatement(TableInfo *table, IndexInfo *index_info = nullptr)
+      : table_(table), index_info_(index_info) {}
   ~BoundSelectStatement() override = default;
   BoundStatementType Type() const override {
     return BoundStatementType::BOUND_SELECT;
   }
   TableInfo *Table() const { return table_; }
   std::shared_ptr<Schema> GetSchema() const { return table_->schema; }
+  IndexInfo *Index() const { return index_info_; }
 
 private:
   TableInfo *table_;
+  IndexInfo *index_info_;
 };
 
 class BoundCreateTableStatement : public BoundStatement {
