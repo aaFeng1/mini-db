@@ -7,6 +7,7 @@
 #include "type/data_type.h"
 #include <cstdint>
 #include <cstring>
+#include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <vector>
@@ -64,6 +65,7 @@ void SelectExecutor::Init() {
   if (bound_select_stmt_->HasWhere()) {
     auto index = bound_select_stmt_->Index();
     if (index != nullptr) {
+      std::cout << "SelectExecutor: using index " << index->index_name << "\n";
       auto where_value = bound_select_stmt_->WhereValue();
       if (const IntValue *int_val =
               dynamic_cast<const IntValue *>(where_value)) {

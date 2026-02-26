@@ -36,7 +36,7 @@ public:
   IndexInfo *CreateIndex(const std::string &index_name,
                          const std::string &table_name, uint32_t key_col_id);
   IndexInfo *GetIndex(const std::string &table_name,
-                      const std::string &index_name);
+                      const std::string &col_name);
   void ListIndexes();
 
 private:
@@ -47,9 +47,10 @@ private:
   BufferPool *bpm_; // 需要创建 TableHeap 时用（或你传 disk/bpm）
 
   // 方便根据表名找索引
-  std::unordered_map<std::string, std::vector<IndexInfo *>> table_to_indexes_;
+  std::unordered_map<std::string, std::vector<std::shared_ptr<IndexInfo>>>
+      table_to_indexes_;
   // TODO:???
-  std::unordered_map<std::string, std::unique_ptr<IndexInfo>> indexes_;
+  std::unordered_map<std::string, std::shared_ptr<IndexInfo>> indexes_;
   int32_t next_index_id_{0};
 };
 

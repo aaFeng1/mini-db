@@ -2,6 +2,7 @@
 #include "common/comparator.h"
 #include "common/page.h"
 #include "index/bplus_tree_page.h"
+#include <cstdint>
 #include <iostream>
 #include <stdexcept>
 
@@ -46,13 +47,16 @@ bool BPlusTree<KeyType, ValueType, Comparator>::GetValue(
   while (!dummy->IsLeaf()) {
     auto internal =
         BPlusTreeInternalPage<KeyType, page_id_t, Comparator>::From(page);
-    page_id_t child_page_id = internal->ValueAt(internal->GetKeyCount() - 1);
-    for (uint16_t i = 1; i < internal->GetKeyCount(); ++i) {
-      if (Comparator{}(key, internal->KeyAt(i)) <= 0) {
-        child_page_id = internal->ValueAt(i - 1);
-        break;
+    uint16_t left = 1, right = internal->GetKeyCount() - 1;
+    while (left <= right) {
+      uint16_t mid = left + (right - left) / 2;
+      if (Comparator{}(key, internal->KeyAt(mid)) < 0) {
+        right = mid - 1;
+      } else {
+        left = mid + 1;
       }
     }
+    page_id_t child_page_id = internal->ValueAt(left - 1);
     buffer_pool_->UnpinPage(nowpid, false);
     nowpid = child_page_id;
     page = buffer_pool_->FetchPage(nowpid);
@@ -60,18 +64,9 @@ bool BPlusTree<KeyType, ValueType, Comparator>::GetValue(
   }
 
   auto leaf = BPlusTreeLeafPage<KeyType, RID, Comparator>::From(page);
-  bool foundbigger = false;
+
   while (true) {
-    for (uint16_t i = 0; i < leaf->GetKeyCount(); ++i) {
-      if (Comparator{}(key, leaf->KeyAt(i)) == 0) {
-        value->push_back(leaf->ValueAt(i));
-      } else if (Comparator{}(key, leaf->KeyAt(i)) < 0) {
-        foundbigger = true;
-        break;
-      }
-    }
-    // 现在的情况是要么因为遇到更大的key而退出循环
-    if (foundbigger) {
+    if (!leaf->Lookup(key, value)) {
       break;
     }
     // 要么是当前页的key遍历完了

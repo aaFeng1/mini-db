@@ -47,6 +47,7 @@ TEST_F(BPlusTreeTest, BasicInsert) {
 }
 
 // 有一页根，两页数据，数据量500以上
+// --gtest_filter=BPlusTreeTest.InsertWithSplit
 TEST_F(BPlusTreeTest, InsertWithSplit) {
   std::ofstream out("data/InsertWithSplit.txt");
   BPlusTree<int32_t, RID, mini::IntComparator> tree(buffer_pool);

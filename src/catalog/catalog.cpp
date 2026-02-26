@@ -56,7 +56,7 @@ IndexInfo *Catalog::CreateIndex(const std::string &index_name,
     return nullptr;
   }
 
-  std::unique_ptr<IndexInfo> index_info = std::make_unique<IndexInfo>();
+  std::shared_ptr<IndexInfo> index_info = std::make_unique<IndexInfo>();
 
   // -- index_info 初始化 --
   index_info->index_name = index_name;
@@ -71,20 +71,20 @@ IndexInfo *Catalog::CreateIndex(const std::string &index_name,
   index_info->index_id = next_index_id_++;
 
   // 维护索引映射关系
-  table_to_indexes_[table_name].push_back(index_info.get());
-  indexes_[index_name] = std::move(index_info);
+  table_to_indexes_[table_name].push_back(index_info);
+  indexes_[index_name] = index_info;
   return indexes_[index_name].get();
 }
 
 IndexInfo *Catalog::GetIndex(const std::string &table_name,
-                             const std::string &index_name) {
+                             const std::string &col_name) {
   auto it = table_to_indexes_.find(table_name);
   if (it == table_to_indexes_.end()) {
     return nullptr;
   }
-  for (IndexInfo *index_info : it->second) {
-    if (index_info->index_name == index_name) {
-      return index_info;
+  for (const auto &index_info : it->second) {
+    if (index_info->key_schema->GetColumn(0).name == col_name) {
+      return index_info.get();
     }
   }
   return nullptr;

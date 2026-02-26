@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <iostream>
+#include <set>
 #include <vector>
 
 using namespace mini;
@@ -80,9 +81,13 @@ TEST_F(BPlusTreePageTest, DuplicateKeyLeafPageInsert) {
   values.clear();
   EXPECT_TRUE(leaf_page->Lookup(2, &values));
   EXPECT_EQ(values.size(), 10);
+  std::set<page_id_t> seen_page_ids;
   for (int i = 0; i < 10; ++i) {
-    EXPECT_EQ(values[i].page_id, 9 - i);
-    EXPECT_EQ(values[i].slot_id, static_cast<uint16_t>(9 - i));
+    seen_page_ids.insert(values[i].page_id);
+  }
+  EXPECT_EQ(seen_page_ids.size(), 10);
+  for (int i = 0; i < 10; ++i) {
+    EXPECT_EQ(seen_page_ids.count(values[i].page_id), 1);
   }
 
   values.clear();

@@ -1,16 +1,19 @@
+#include <chrono>
 #include <cstddef>
 #include <cstring>
+#include <filesystem>
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <random>
 #include <sstream>
 #include <string>
 #include <vector>
 
 #include "binder/binder.h"
 #include "catalog/catalog.h"
-#include "execution/execution_context.h" // 如果你把 ctx 单独放一个头文件，按实际路径改
-#include "execution/executor.h" // 这里假设包含 Executor/InsertExecutor/SelectExecutor
+#include "execution/execution_context.h"
+#include "execution/executor.h"
 #include "parser/lexer.h"
 #include "parser/parser.h"
 #include "storage/buffer_pool.h"
@@ -27,10 +30,31 @@ static void BootstrapCatalog(Catalog &catalog) {
   // 下面按你 Schema/Column API 调整
   auto schema = std::make_shared<Schema>();
   schema->AddColumn("col1", DataType::INTEGER);
-  // 假设你已经把 VARCHAR 长度存进 TypeSpec/ColumnType 里了，这里演示用 10
-  schema->AddColumn("col2", DataType::VARCHAR, 10);
+
+  schema->AddColumn("col2", DataType::INTEGER);
 
   catalog.CreateTable("t", schema);
+
+  std::vector<int> keys(100000);
+  for (int j = 0; j < 10; ++j) {
+
+    for (int i = 0; i < 10000; ++i) {
+      keys[j * 10000 + i] = i;
+    }
+  }
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::shuffle(keys.begin(), keys.end(), gen);
+
+  auto table_info = catalog.GetTable("t");
+  for (int key : keys) {
+    Tuple tuple;
+    char *buf = tuple.Resize(schema->GetTupleLength());
+    int32_t tmp = key;
+    memcpy(buf, &tmp, sizeof(int32_t));
+    memcpy(buf + sizeof(int32_t), &tmp, sizeof(int32_t));
+    table_info->table->InsertTuple(tuple);
+  }
 }
 
 static void PrintPrompt() { std::cout << "mini-db> " << std::flush; }
@@ -88,12 +112,20 @@ static void PrintRows(const std::vector<Column> &cols,
   size_t row_count = 0;
 
   while (exec.Next(&t)) {
-    std::cout << '|';
-    for (size_t i = 0; i < cols.size(); i++) {
-      std::string v = value_of(t, i);
-      std::cout << ' ' << PadOrTrunc(std::move(v), widths[i]) << " |";
+    if (row_count <= 10) {
+      std::cout << '|';
+      for (size_t i = 0; i < cols.size(); i++) {
+        std::string v = value_of(t, i);
+        std::cout << ' ' << PadOrTrunc(std::move(v), widths[i]) << " |";
+      }
+      std::cout << "\n";
+    } else if (row_count == 11) {
+      std::cout << "| " << PadOrTrunc("...", widths[0]) << " |";
+      for (size_t i = 1; i < cols.size(); i++) {
+        std::cout << ' ' << PadOrTrunc("...", widths[i]) << " |";
+      }
+      std::cout << "\n";
     }
-    std::cout << "\n";
     row_count++;
   }
   PrintLine(widths);
@@ -106,8 +138,10 @@ int main() {
   using namespace mini;
 
   try {
+    std::filesystem::remove("data/mini.db");
     auto disk = std::make_unique<DiskManager>("data/mini.db");
-    BufferPool bpm(10, disk.get());
+
+    BufferPool bpm(1000, disk.get());
 
     Catalog catalog(&bpm);
     ExecutionContext ctx(catalog);
@@ -177,7 +211,6 @@ int main() {
 
         // 改动：传 ctx
         SelectExecutor exec(ctx, std::move(sel));
-        exec.Init();
 
         auto schema = exec.GetSchema();
         const std::vector<Column> &cols = schema->GetColumns();
@@ -185,11 +218,17 @@ int main() {
         for (size_t i = 0; i < cols.size(); i++) {
           widths[i] = std::max(cols[i].name.size(), DefaultWidth(cols[i]));
         }
+        auto start = std::chrono::steady_clock::now();
+        exec.Init();
         PrintSelectHeader(cols, widths);
         PrintRows(cols, widths, exec,
                   [&schema](const Tuple &t, size_t col_idx) -> std::string {
                     return t.GetValue(schema, col_idx)->ToString();
                   });
+        auto end = std::chrono::steady_clock::now();
+        auto duration = end - start;
+        double ms = std::chrono::duration<double, std::milli>(duration).count();
+        std::cout << "(time: " << ms << " ms)\n";
         break;
       }
 

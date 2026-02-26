@@ -91,7 +91,7 @@ TEST_F(CatalogTest, CreateAndGetIndex) {
   EXPECT_EQ(index_info->key_schema->GetColumn(0).name, "id");
   EXPECT_EQ(index_info->key_schema->GetColumn(0).type, DataType::INTEGER);
 
-  IndexInfo *fetched_index = catalog.GetIndex("users", "idx_id");
+  IndexInfo *fetched_index = catalog.GetIndex("users", "id");
   EXPECT_NE(fetched_index, nullptr);
   EXPECT_EQ(fetched_index->index_name, "idx_id");
   EXPECT_EQ(fetched_index->table_name, "users");
