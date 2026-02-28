@@ -164,10 +164,9 @@ mini-db>
 
 ``` bash
 git clone --recursive https://github.com/aaFeng1/mini-db.git
-mkdir build
-cd build
-cmake ..
-make
+cd mini-db
+./scripts/build.sh
+./build/src/minidb
 ```
 
 ## 6.项目学习收获

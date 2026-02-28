@@ -135,7 +135,7 @@ int main() {
   using namespace mini;
 
   try {
-    std::filesystem::remove("data/mini.db");
+    // std::filesystem::remove("data/mini.db");
     auto disk = std::make_unique<DiskManager>("data/mini.db");
 
     BufferPool bpm(1000, disk.get());
