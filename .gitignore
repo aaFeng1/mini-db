@@ -43,4 +43,4 @@
 /build*
 /.cache
 /data
-
+*.db
