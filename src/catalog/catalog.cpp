@@ -90,6 +90,16 @@ IndexInfo *Catalog::GetIndex(const std::string &table_name,
   return nullptr;
 }
 
+std::vector<std::shared_ptr<IndexInfo>> &
+Catalog ::GetIndexes(const std::string &table_name) {
+  auto it = table_to_indexes_.find(table_name);
+  if (it == table_to_indexes_.end()) {
+    static std::vector<std::shared_ptr<IndexInfo>> empty;
+    return empty;
+  }
+  return it->second;
+}
+
 void Catalog::ListIndexes() {
   for (const auto &pair : indexes_) {
     const IndexInfo *index_info = pair.second.get();

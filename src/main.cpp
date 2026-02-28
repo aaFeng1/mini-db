@@ -22,10 +22,7 @@
 
 namespace mini {
 
-// ---------------------------
-// 如果你现在已经支持 CREATE TABLE，可以把 BootstrapCatalog 删除。
-// 如果仍然想保留一个“默认表”，也可以继续用。
-// ---------------------------
+// 默认表
 static void BootstrapCatalog(Catalog &catalog) {
   // 下面按你 Schema/Column API 调整
   auto schema = std::make_shared<Schema>();
@@ -148,7 +145,7 @@ int main() {
 
     BootstrapCatalog(catalog);
 
-    std::cout << "LightDB ready. Type SQL, or 'quit'.\n";
+    std::cout << "MiniDB ready. Type SQL, or 'quit'.\n";
 
     // ---------------------------
     // 3) REPL：SQL -> parse -> bind -> exec
@@ -181,7 +178,6 @@ int main() {
       }
 
       // 3.3 Executor
-      // 你这里目前用 dynamic_cast + release 的方式 OK（v1 收尾完全够用）
       switch (bound->Type()) {
 
       case BoundStatementType::BOUND_INSERT: {

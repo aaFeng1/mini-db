@@ -37,6 +37,9 @@ public:
                          const std::string &table_name, uint32_t key_col_id);
   IndexInfo *GetIndex(const std::string &table_name,
                       const std::string &col_name);
+
+  std::vector<std::shared_ptr<IndexInfo>> &
+  GetIndexes(const std::string &table_name);
   void ListIndexes();
 
 private:

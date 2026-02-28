@@ -53,7 +53,14 @@ bool InsertExecutor::Next(Tuple *) {
     }
     }
   }
-  bound_insert_stmt_->Table()->table->InsertTuple(tuple);
+  auto rid = bound_insert_stmt_->Table()->table->InsertTuple(tuple);
+
+  auto indexes =
+      Context().GetCatalog().GetIndexes(bound_insert_stmt_->Table()->name);
+  for (const auto &index : indexes) {
+    index->index->InsertEntry(tuple, rid);
+  }
+
   return done_ = true;
 }
 
