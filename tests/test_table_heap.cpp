@@ -86,3 +86,20 @@ TEST_F(TableHeapTest, InsertAndGetMultipleTuples) {
 }
 
 // 测试逻辑删除功能
+// --gtest_filter=TableHeapTest.MarkDeleteAndGetTuple
+TEST_F(TableHeapTest, MarkDeleteAndGetTuple) {
+  Tuple tuple;
+  char *buf = tuple.Resize(8);
+  int32_t id = 123;
+  int32_t value = 456;
+  std::memcpy(buf, &id, 4);
+  std::memcpy(buf + 4, &value, 4);
+
+  RID rid1 = table_heap_->InsertTuple(tuple);
+  RID rid2 = table_heap_->InsertTuple(tuple);
+  EXPECT_TRUE(table_heap_->DeleteTuple(rid1));
+
+  // 标记删除后，GetTuple 应该返回 false
+  Tuple out_tuple;
+  EXPECT_FALSE(table_heap_->GetTuple(rid1, &out_tuple));
+}

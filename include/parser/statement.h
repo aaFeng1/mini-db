@@ -8,7 +8,7 @@
 
 namespace mini {
 
-enum class StatementType { INSERT, SELECT, CREATE_TABLE, CREATE_INDEX };
+enum class StatementType { INSERT, SELECT, CREATE_TABLE, CREATE_INDEX, DELETE };
 
 class Statement {
 public:
@@ -104,6 +104,26 @@ private:
   std::string index_name_;
   std::string table_name_;
   std::vector<std::string> column_names_;
+};
+
+class DeleteStatement : public Statement {
+public:
+  DeleteStatement(std::string table_name, std::string where_column,
+                  std::unique_ptr<Value> where_value)
+      : table_name_(std::move(table_name)),
+        where_column_(std::move(where_column)),
+        where_value_(std::move(where_value)) {}
+  ~DeleteStatement() override = default;
+
+  StatementType Type() const override { return StatementType::DELETE; }
+  std::string Table_name() const { return table_name_; }
+  std::string Where_column() const { return where_column_; }
+  const Value *Where_value() const { return where_value_.get(); }
+
+private:
+  std::string table_name_;
+  std::string where_column_;
+  std::unique_ptr<Value> where_value_;
 };
 
 } // namespace mini

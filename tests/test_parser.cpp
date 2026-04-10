@@ -108,3 +108,21 @@ TEST_F(ParserTest, SelectWithWhereClause) {
   ASSERT_NE(int_literal, nullptr);
   ASSERT_EQ(int_literal->GetValue(), 1);
 }
+
+// DELETE FROM t WHERE id = 1;
+TEST_F(ParserTest, DeleteWithWhereClause) {
+  std::string query = "DELETE FROM t WHERE id = 1;";
+  lexer_ = std::make_unique<Lexer>(query);
+  parser_ = std::make_unique<Parser>(std::move(lexer_));
+  auto stmt = parser_->ParseStatement();
+  ASSERT_EQ(stmt->Type(), StatementType::DELETE);
+  auto delete_stmt = static_cast<DeleteStatement *>(stmt.get());
+  ASSERT_EQ(delete_stmt->Table_name(), "t");
+  // ASSERT_TRUE(delete_stmt->HasWhere());
+  ASSERT_EQ(delete_stmt->Where_column(), "id");
+  auto where_value = delete_stmt->Where_value();
+  ASSERT_NE(where_value, nullptr);
+  auto int_literal = dynamic_cast<const IntValue *>(where_value);
+  ASSERT_NE(int_literal, nullptr);
+  ASSERT_EQ(int_literal->GetValue(), 1);
+}

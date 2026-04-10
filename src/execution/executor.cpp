@@ -182,4 +182,47 @@ void CreateIndexExecutor::Init() {
 
 bool CreateIndexExecutor::Next(Tuple *) { return !done_; }
 
+void DeleteExecutor::Init() {
+  TableInfo *table = bound_delete_stmt_->Table();
+  table_iter_ = table->table->Begin();
+  end_ = table->table->End();
+
+  // auto index = bound_delete_stmt_->Index();
+  // if (index != nullptr) {
+  //   std::cout << "DeleteExecutor: using index " << index->index_name << "\n";
+  //   auto where_value = bound_delete_stmt_->WhereValue();
+  //   if (const IntValue *int_val = dynamic_cast<const IntValue
+  //   *>(where_value)) {
+  //     index->index->ScanKey(*int_val, &index_scan_result_);
+  //   } else {
+  //     throw std::runtime_error("Unsupported literal type in WHERE clause");
+  //   }
+  // }
+  while (table_iter_ != end_) {
+    auto tuple = *table_iter_;
+    auto where_value = bound_delete_stmt_->WhereValue();
+    auto col_id = bound_delete_stmt_->WhereColumnId();
+    const auto &col = bound_delete_stmt_->Table()->schema->GetColumns()[col_id];
+    const char *data = tuple.Data() + col.offset;
+
+    if (where_value->Type() == DataType::INTEGER) {
+      const IntValue *int_val = dynamic_cast<const IntValue *>(where_value);
+      int32_t val;
+      memcpy(&val, data, sizeof(int32_t));
+      if (val == int_val->GetValue()) {
+        table->table->DeleteTuple(table_iter_.GetRID());
+        ++table_iter_;
+        continue;
+      }
+    } else {
+      throw std::runtime_error("Unsupported literal type in WHERE clause");
+    }
+    ++table_iter_;
+  }
+
+  inited_ = true;
+}
+
+bool DeleteExecutor::Next(Tuple *) { return !inited_; }
+
 } // namespace mini

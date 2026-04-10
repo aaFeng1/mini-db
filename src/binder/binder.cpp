@@ -23,7 +23,8 @@ Binder::BindStatement(const Statement &statement) {
   case StatementType::CREATE_INDEX:
     return BindCreateIndex(
         static_cast<const CreateIndexStatement &>(statement));
-
+  case StatementType::DELETE:
+    return BindDelete(static_cast<const DeleteStatement &>(statement));
   default:
     return nullptr;
   }
@@ -102,6 +103,34 @@ Binder::BindCreateIndex(const CreateIndexStatement &statement) {
 
   return std::make_unique<BoundCreateIndexStatement>(index_name, table_name,
                                                      column_ids);
+}
+
+std::unique_ptr<BoundStatement>
+Binder::BindDelete(const DeleteStatement &statement) {
+  std::string table_name = statement.Table_name();
+  TableInfo *table = catalog_.GetTable(table_name);
+  if (table == nullptr) {
+    error_ =
+        BindError("Table not found: " + table_name, SourceSpan{0, 0, 0, 0});
+    return nullptr;
+  }
+  IndexInfo *index_info = nullptr;
+  std::unique_ptr<Value> where_value = nullptr;
+
+  index_info = catalog_.GetIndex(table_name, statement.Where_column());
+  auto value = statement.Where_value();
+  if (const IntValue *int_val = dynamic_cast<const IntValue *>(value)) {
+    where_value = std::make_unique<IntValue>(int_val->GetValue());
+  } else {
+    // unsupported literal type in where clause
+    error_ = BindError("Unsupported literal type in WHERE clause",
+                       SourceSpan{0, 0, 0, 0});
+    return nullptr;
+  }
+
+  return std::make_unique<BoundDeleteStatement>(table, index_info, true,
+                                                statement.Where_column(),
+                                                std::move(where_value));
 }
 
 } // namespace mini

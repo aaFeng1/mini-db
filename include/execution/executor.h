@@ -102,4 +102,23 @@ private:
   bool done_{false};
 };
 
+class DeleteExecutor : public Executor {
+public:
+  explicit DeleteExecutor(
+      ExecutionContext &context,
+      std::unique_ptr<BoundDeleteStatement> bound_delete_stmt)
+      : Executor(context), bound_delete_stmt_(std::move(bound_delete_stmt)) {}
+
+  ~DeleteExecutor() override = default;
+
+  void Init() override;
+  bool Next(Tuple *) override;
+
+private:
+  std::unique_ptr<BoundDeleteStatement> bound_delete_stmt_;
+  TableIterator table_iter_;
+  TableIterator end_;
+  bool inited_;
+};
+
 } // namespace mini

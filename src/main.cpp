@@ -262,22 +262,22 @@ int main() {
         break;
       }
 
-        // case BoundStatementType::BOUND_DELETE: {
-        //   auto *raw = dynamic_cast<BoundDeleteStatement *>(bound.release());
-        //   if (!raw) {
-        //     std::cerr << "[exec error] bad bound stmt type\n";
-        //     continue;
-        //   }
-        //   std::unique_ptr<BoundDeleteStatement> del(raw);
+      case BoundStatementType::BOUND_DELETE: {
+        auto *raw = dynamic_cast<BoundDeleteStatement *>(bound.release());
+        if (!raw) {
+          std::cerr << "[exec error] bad bound stmt type\n";
+          continue;
+        }
+        std::unique_ptr<BoundDeleteStatement> del(raw);
 
-        //   // 改动：传 ctx
-        //   DeleteExecutor exec(ctx, std::move(del));
-        //   exec.Init();
-        //   while (exec.Next(nullptr)) {
-        //   }
-        //   std::cout << "OK (delete)\n";
-        //   break;
-        // }
+        // 改动：传 ctx
+        DeleteExecutor exec(ctx, std::move(del));
+        exec.Init();
+        while (exec.Next(nullptr)) {
+        }
+        std::cout << "OK (delete)\n";
+        break;
+      }
 
       default:
         std::cerr << "[exec error] unsupported statement\n";

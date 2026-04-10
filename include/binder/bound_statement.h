@@ -14,6 +14,7 @@ enum class BoundStatementType {
   BOUND_SELECT,
   BOUND_CREATE_TABLE,
   BOUND_CREATE_INDEX,
+  BOUND_DELETE,
 };
 
 class BoundStatement {
@@ -121,6 +122,40 @@ private:
   // 目前只支持单列索引，所以 column_names_ 里只有一个元素，且是列的 id（在
   // schema 中的索引）
   std::vector<uint32_t> column_names_;
+};
+
+class BoundDeleteStatement : public BoundStatement {
+public:
+  BoundDeleteStatement(TableInfo *table, IndexInfo *index_info = nullptr,
+                       bool has_where = false, std::string where_column = "",
+                       std::unique_ptr<Value> where_value = nullptr)
+      : table_(table), index_info_(index_info), has_where_(has_where),
+        where_column_(where_column), where_value_(std::move(where_value)) {}
+  ~BoundDeleteStatement() override = default;
+  BoundStatementType Type() const override {
+    return BoundStatementType::BOUND_DELETE;
+  }
+  TableInfo *Table() const { return table_; }
+  IndexInfo *Index() const { return index_info_; }
+  bool HasWhere() const { return has_where_; }
+  const std::string &WhereColumn() const { return where_column_; }
+  uint32_t WhereColumnId() const {
+    for (size_t i = 0; i < table_->schema->GetColumns().size(); ++i) {
+      if (table_->schema->GetColumns()[i].name == where_column_) {
+        return i;
+      }
+    }
+    throw std::runtime_error("Where column not found in schema");
+  }
+  const Value *WhereValue() const { return where_value_.get(); }
+
+private:
+  TableInfo *table_;
+  IndexInfo *index_info_;
+
+  bool has_where_;
+  std::string where_column_;
+  std::unique_ptr<Value> where_value_;
 };
 
 } // namespace mini

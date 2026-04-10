@@ -29,6 +29,8 @@ std::unique_ptr<Statement> Parser::ParseStatement() {
       return nullptr;
     }
   }
+  case TokenType::TOKEN_DELETE:
+    return ParseDeleteStatement();
   default:
     error_ = ParserError(ErrorKind::ERROR_UNSUPPORTED_TOKEN,
                          lexer_->PeekToken().GetSpan(), "unkonw statement.");
@@ -157,6 +159,23 @@ std::unique_ptr<Statement> Parser::ParseCreateIndexStatement() {
   return std::make_unique<CreateIndexStatement>(
       std::string(index_name.GetLexeme()), std::string(table_name.GetLexeme()),
       std::move(column_names));
+}
+
+std::unique_ptr<Statement> Parser::ParseDeleteStatement() {
+  // DELETE FROM table_name WHERE column_name = value;
+  Expect(TokenType::TOKEN_DELETE);
+  Expect(TokenType::TOKEN_FROM);
+  Token table_name = Expect(TokenType::TOKEN_IDENTIFIER);
+  Expect(TokenType::TOKEN_WHERE);
+  Token column_name_token = Expect(TokenType::TOKEN_IDENTIFIER);
+  Expect(TokenType::TOKEN_EQUAL);
+  Token value_token = Expect(TokenType::TOKEN_NUMBER);
+  Expect(TokenType::TOKEN_SEMICOLON);
+  return std::make_unique<DeleteStatement>(
+      std::string(table_name.GetLexeme()),
+      std::string(column_name_token.GetLexeme()),
+      std::make_unique<IntValue>(
+          std::stoi(std::string(value_token.GetLexeme()))));
 }
 
 Token Parser::Expect(TokenType expected) {

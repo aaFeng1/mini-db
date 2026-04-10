@@ -34,6 +34,7 @@ public:
   std::unique_ptr<Statement> ParseSelectStatement();
   std::unique_ptr<Statement> ParseCreateTableStatement();
   std::unique_ptr<Statement> ParseCreateIndexStatement();
+  std::unique_ptr<Statement> ParseDeleteStatement();
 
   bool HasError() const { return error_.has_value(); }
   ParserError GetError() const { return error_.value(); }
