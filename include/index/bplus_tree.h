@@ -26,6 +26,8 @@ private:
   void MergeNewPages(page_id_t left_page_id, page_id_t right_page_id,
                      page_id_t parent_page_id);
 
+  bool RemoveDown(page_id_t page_id, const KeyType &key);
+
   BufferPool *buffer_pool_;
   page_id_t root_page_id_{INVALID_PAGE_ID};
 };

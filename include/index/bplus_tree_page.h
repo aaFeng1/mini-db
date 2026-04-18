@@ -66,7 +66,7 @@ public:
 
   bool Lookup(const KeyType &key, std::vector<ValueType> *value) const;
   bool Insert(const KeyType &key, const ValueType &value);
-  bool Remove(const KeyType &key) = delete; //暂不实现删除功能
+  bool Remove(const KeyType &key);
 
   bool IsFull() const { return this->GetKeyCount() >= MAX_KEY_COUNT; }
   bool Split(BPlusTreeLeafPage *new_page);

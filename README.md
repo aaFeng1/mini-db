@@ -20,6 +20,7 @@ MiniDB 是一个基于c++17 实现的轻量级关系型数据库系统
 - SELECT * FROM tablename;
 - CREATE INDEX idx_name ON t(name);
 - SELECT * FROM tablename WHERE colname = value;
+- DELETE FROM tablename WHERE colname = value;
 
 本项目目前对SQL的限制：
 

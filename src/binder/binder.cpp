@@ -117,6 +117,7 @@ Binder::BindDelete(const DeleteStatement &statement) {
   IndexInfo *index_info = nullptr;
   std::unique_ptr<Value> where_value = nullptr;
 
+  // TODO: 这里应该修改该表的所有索引，目前先假设只有一个索引
   index_info = catalog_.GetIndex(table_name, statement.Where_column());
   auto value = statement.Where_value();
   if (const IntValue *int_val = dynamic_cast<const IntValue *>(value)) {

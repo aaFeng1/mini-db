@@ -88,3 +88,28 @@ TEST_F(BPlusTreeTest, RandomInsert) {
     EXPECT_EQ(values[0].slot_id, static_cast<uint16_t>(key));
   }
 }
+
+// 删除测试
+// --gtest_filter=BPlusTreeTest.Remove
+TEST_F(BPlusTreeTest, Remove) {
+  std::ofstream out("data/Remove.txt");
+  BPlusTree<int32_t, RID, mini::IntComparator> tree(buffer_pool);
+  for (int i = 0; i < 1000; ++i) {
+    EXPECT_TRUE(tree.Insert(i, RID{i, static_cast<uint16_t>(i)}));
+  }
+  for (int i = 0; i < 1000; i += 2) {
+    EXPECT_TRUE(tree.Remove(i));
+  }
+  tree.Print(out);
+  for (int i = 0; i < 1000; ++i) {
+    std::vector<RID> values;
+    if (i % 2 == 0) {
+      EXPECT_FALSE(tree.GetValue(i, &values));
+    } else {
+      EXPECT_TRUE(tree.GetValue(i, &values));
+      EXPECT_EQ(values.size(), 1);
+      EXPECT_EQ(values[0].page_id, i);
+      EXPECT_EQ(values[0].slot_id, static_cast<uint16_t>(i));
+    }
+  }
+}

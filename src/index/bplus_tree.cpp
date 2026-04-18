@@ -87,7 +87,10 @@ bool BPlusTree<KeyType, ValueType, Comparator>::GetValue(
 
 template <typename KeyType, typename ValueType, typename Comparator>
 bool BPlusTree<KeyType, ValueType, Comparator>::Remove(const KeyType &key) {
-  return false;
+  if (root_page_id_ == INVALID_PAGE_ID) {
+    return false;
+  }
+  return RemoveDown(root_page_id_, key);
 }
 
 template <typename KeyType, typename ValueType, typename Comparator>
@@ -229,6 +232,39 @@ void BPlusTree<KeyType, ValueType, Comparator>::MergeNewPages(
   }
   parent_pageguard.SetDirty();
 }
+
+template <typename KeyType, typename ValueType, typename Comparator>
+bool BPlusTree<KeyType, ValueType, Comparator>::RemoveDown(page_id_t page_id,
+                                                           const KeyType &key) {
+  auto pageguard = buffer_pool_->FetchPageGuarded(page_id);
+  auto dummy = BPlusTreePage::From(pageguard.GetPage());
+  if (dummy->IsLeaf()) {
+    auto leaf =
+        BPlusTreeLeafPage<KeyType, RID, Comparator>::From(pageguard.GetPage());
+    if (!leaf->Remove(key)) {
+      return false;
+    }
+    pageguard.SetDirty();
+    return true;
+  }
+
+  auto internal = BPlusTreeInternalPage<KeyType, page_id_t, Comparator>::From(
+      pageguard.GetPage());
+  //找到要删除的子树
+  page_id_t child_page_id = internal->ValueAt(internal->GetKeyCount() - 1);
+  for (uint16_t i = 1; i < internal->GetKeyCount(); ++i) {
+    if (Comparator{}(key, internal->KeyAt(i)) < 0) {
+      child_page_id = internal->ValueAt(i - 1);
+      break;
+    }
+  }
+  bool result = RemoveDown(child_page_id, key);
+  if (result) {
+    pageguard.SetDirty();
+  }
+  return result;
+}
+
 template class BPlusTree<int32_t, RID, mini::IntComparator>;
 
 } // namespace mini

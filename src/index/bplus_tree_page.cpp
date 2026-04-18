@@ -81,14 +81,16 @@ bool BPlusTreeLeafPage<KeyType, ValueType, Comparator>::Lookup(
       while (true) {
         if (Comparator{}(key, array_[i].key) != 0)
           break;
-        value->push_back(array_[i].value);
+        if (array_[i].value.page_id != -1) // 过滤掉被删除的key
+          value->push_back(array_[i].value);
         if (i == left)
           break; // 关键：到边界就停
         --i;
       }
       i = mid + 1;
       while (i <= right && Comparator{}(key, array_[i].key) == 0) {
-        value->push_back(array_[i].value);
+        if (array_[i].value.page_id != -1) // 过滤掉被删除的key
+          value->push_back(array_[i].value);
         flag = true;
         i++;
       }
@@ -116,6 +118,23 @@ bool BPlusTreeLeafPage<KeyType, ValueType, Comparator>::Insert(
   array_[index].value = value;
   this->SetKeyCount(key_count + 1);
   return true;
+}
+
+template <typename KeyType, typename ValueType, typename Comparator>
+bool BPlusTreeLeafPage<KeyType, ValueType, Comparator>::Remove(
+    const KeyType &key) {
+  uint16_t key_count = this->GetKeyCount();
+  uint16_t index = 0;
+  bool has_removed = false;
+  while (index < key_count && Comparator{}(array_[index].key, key) < 0) {
+    index++;
+  }
+  while (index < key_count && Comparator{}(array_[index].key, key) == 0) {
+    array_[index].value = ValueType(); // 清空value
+    index++;
+    has_removed = true;
+  }
+  return has_removed;
 }
 
 template <typename KeyType, typename ValueType, typename Comparator>
@@ -217,6 +236,23 @@ bool BPlusTreeInternalPage<KeyType, ValueType, Comparator>::InsertAfter(
   this->SetKeyCount(key_count + 1);
   return true;
 }
+
+// template <typename KeyType, typename ValueType, typename Comparator>
+// bool BPlusTreeInternalPage<KeyType, ValueType, Comparator>::Remove(
+//     const KeyType &key) {
+//   uint16_t key_count = this->GetKeyCount();
+//   uint16_t index = 0;
+//   bool has_removed = false;
+//   while (index < key_count && Comparator{}(array_[index].key, key) < 0) {
+//     index++;
+//   }
+//   while (index < key_count && Comparator{}(array_[index].key, key) == 0) {
+//     array_[index].value = ValueType(); // 清空value
+//     index++;
+//     has_removed = true;
+//   }
+//   return has_removed;
+// }
 
 template <typename KeyType, typename ValueType, typename Comparator>
 bool BPlusTreeInternalPage<KeyType, ValueType, Comparator>::Split(
